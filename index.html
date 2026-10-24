@@ -868,7 +868,7 @@ function pFinal(){
       <img class="ilus" src="${M.celebra}" alt="Lino celebra con las alas abiertas" style="width:min(300px,70%)">
       <div><h1 class="titulo saludo" style="font-size:clamp(36px,5vw,52px)">Muy bien, ${esc(S.nombre)}</h1>
       <p style="font-size:24px;margin-top:6px">${n?`Hoy has tejido <b>${n} ${n===1?'hilo':'hilos'}</b> en tu nido.`:'Hoy has practicado. Mañana, otro poco.'}</p></div>
-      ${cumpl.length?`<div class="mensaje bien"><p class="titulo" style="font-size:26px">Deseo cumplido</p><p>«${cumpl.join('», «')}» ya está en tu álbum.</p></div>`:''}
+      ${cumpl.length?`<div class="mensaje bien"><p class="titulo" style="font-size:26px">Deseo cumplido</p><p>«${cumpl.join('», «')}» ya está tejido en tu nido.</p></div>`:''}
       ${ses.vueltas.length?`<div style="display:flex;flex-direction:column;gap:10px"><p class="ayuda">Hoy han vuelto</p><div class="palabras">${ses.vueltas.map(w=>`<span>${w}</span>`).join('')}</div></div>`:''}
       <p class="ayuda" style="font-size:20px">Esta semana has practicado ${nd} ${nd===1?'día':'días'}.</p>
       <div class="fila" style="justify-content:flex-start"><button class="boton secundario" data-a="minido">Ver mi nido</button><button class="boton primario" data-a="terminar">Terminar</button></div>
@@ -896,7 +896,7 @@ function pNido(){
     <div class="deseos">${S.deseos.map(d=>{const h=hilosDeseo(d),t=d.palabras.length,cum=t>0&&h===t;
       return`<div class="deseo ${cum?'logrado':''}"><span class="circ" aria-hidden="true">${d.icono}</span><div>
         <h3>${esc(d.nombre)}</h3><p class="frase">${d.frase?'«'+esc(d.frase)+'»':''}</p>
-        ${cum?`<p class="estado" style="color:var(--salvia-viva-oscura);display:flex;align-items:center;gap:6px"><span style="width:20px;height:20px">${I.ok}</span>Ya está en el álbum</p>`:
+        ${cum?`<p class="estado" style="color:var(--salvia-viva-oscura);display:flex;align-items:center;gap:6px"><span style="width:20px;height:20px">${I.ok}</span>Rincón tejido</p>`:
         `<div class="hilos" role="img" aria-label="${h} de ${t} palabras">${d.palabras.map(p=>`<i style="${S.logradas[p]?'background:'+d.color:''}"></i>`).join('')}</div><p class="estado" style="color:${textoColor(d.color)}">${h} de ${t} ya vuelven</p>`}
       </div></div>`}).join('')}</div>
   </section>`,montaNidos);
