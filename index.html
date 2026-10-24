@@ -258,6 +258,12 @@ a.boton.primario{color:var(--sobre-salvia)}
 .silabeo .sil.on{border-bottom-color:var(--salvia-viva);background:var(--durazno-suave)}
 .silabeo .sil.todo{border-bottom-color:var(--salvia-viva)}
 .practicar-deseo{margin-top:8px;align-self:flex-start}
+.animos{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.animo{width:min(180px,28vw);min-height:180px;border-radius:28px;border:3px solid var(--c);background:var(--papel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font:inherit;font-size:24px;font-weight:700;color:var(--tinta);cursor:pointer;box-shadow:0 4px 0 var(--c)}
+.animo svg{width:88px;height:88px}
+.animo:active{transform:translateY(3px);box-shadow:0 1px 0 var(--c)}
+.animo-pro{display:flex;flex-direction:column;gap:8px}.animo-pro p{margin:0}
+.animo-dia{display:flex;flex-direction:column;align-items:center;gap:2px}.animo-dia svg{width:36px;height:36px}.animo-dia small{font-size:13px;color:var(--tinta-suave)}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -433,7 +439,7 @@ const N_EJ=6;
 
 /* ---------- estado ---------- */
 const KEY='nido-simulacion-v1';
-function base(){return{nombre:'',nivel:2,voz:true,hilos:Array.from({length:30},(_,i)=>i%9===4?'maria':(i%3?'rama':'rama-clara')),logradas:{teléfono:true},dias:[],cumplidos:{},deseos:JSON.parse(JSON.stringify(DESEOS_BASE)),fotos:{},revFotos:{}}}
+function base(){return{nombre:'',nivel:2,voz:true,hilos:Array.from({length:30},(_,i)=>i%9===4?'maria':(i%3?'rama':'rama-clara')),logradas:{teléfono:true},dias:[],cumplidos:{},deseos:JSON.parse(JSON.stringify(DESEOS_BASE)),fotos:{},revFotos:{},animo:{}}}
 let S=base();
 try{const g=JSON.parse(localStorage.getItem(KEY)||'null');if(g&&Array.isArray(g.hilos))S=Object.assign(base(),g);}catch(e){}
 function guarda(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
@@ -605,6 +611,7 @@ function render(){
   if(vista==='nido')return pNido();
   if(vista==='pruebaIntro')return pPruebaIntro();
   if(vista==='pruebaFin')return pPruebaFin();
+  if(vista==='animo')return pAnimo();
 }
 
 /* Primera vez: Lino pregunta el nombre antes de nada */
@@ -744,6 +751,24 @@ function leeSilabas(forzar){
   di(partes.join(' '),forzar,.72,k=>{sp.forEach(x=>x.classList.remove('on'));
     if(k>=1&&k<=it.s.length&&sp[k-1])sp[k-1].classList.add('on');
     if(k===it.s.length+1)sp.forEach(x=>x.classList.add('todo'))});
+}
+
+/* ---------- ¿Cómo te sientes hoy? ----------
+   Una vez al día, al entrar. No diagnostica: solo lo registra para la familia y la profesional.
+   Si dice «mal» 3 o más días en una semana, el informe y la familia lo ven señalado. */
+const ANIMOS=[['bien','Bien','#5e8a5a','M8 14.5c1.1 1.5 2.4 2.2 4 2.2s2.9-.7 4-2.2'],['regular','Regular','#b08a3e','M8.5 15.5h7'],['mal','Mal','#5b6b8c','M8 16.5c1.1-1.5 2.4-2.2 4-2.2s2.9.7 4 2.2']];
+function cara(c,boca){return`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="${c}22" stroke="${c}" stroke-width="1.6"/><circle cx="9" cy="10" r="1.2" fill="${c}"/><circle cx="15" cy="10" r="1.2" fill="${c}"/><path d="${boca}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/></svg>`}
+function animoPendiente(){return !(S.animo||{})[hoyISO()]}
+function animoSemana(){const a=S.animo||{};const d=new Date();d.setDate(d.getDate()-6);const desde=d.toISOString().slice(0,10);
+  return Object.entries(a).filter(([f,v])=>f>=desde&&v!=='salto').sort()}
+function malesSemana(){return animoSemana().filter(([,v])=>v==='mal').length}
+function pAnimo(){
+  pinta(`<section class="pantalla"><div class="centro">
+    <img class="ilus" src="${M.bienvenida}" alt="Lino te mira" style="height:min(220px,28vh);width:auto">
+    <h1 class="titulo saludo" style="font-size:clamp(34px,5vw,48px)">¿Cómo te sientes hoy, ${esc(S.nombre)}?</h1>
+    <div class="animos">${ANIMOS.map(([k,l,c,b])=>`<button class="animo" data-a="animo" data-v="${k}" style="--c:${c}">${cara(c,b)}<span>${l}</span></button>`).join('')}</div>
+    <button class="txt-btn" data-a="animo" data-v="salto">Ahora no</button>
+  </div></section>`,()=>di(`¿Cómo te sientes hoy, ${S.nombre}? Bien. Regular. Mal.`));
 }
 /* ---- sesión ---- */
 function itemPalabra(w){
@@ -1043,6 +1068,7 @@ function capaFamilia(tab){
     <span class="etiqueta">Espacio de la familia</span>
     ${pestanas('ajustes')}
     ${informePendiente()?`<div class="aviso-informe"><p><b>El informe semanal para ${esc(S.pro.nombre||'la profesional')} está listo.</b></p>${bloqueEnvio()}</div>`:''}
+    ${malesSemana()>=3?`<div class="aviso-prueba"><p><b>Esta semana ${esc(S.nombre)} ha dicho sentirse mal ${malesSemana()} días.</b> Puede ayudar hablarlo con calma y comentarlo con su profesional.</p></div>`:''}
     ${avisoFotos().map(d=>`<div class="aviso-prueba"><p><b>Las fotos de «${esc(d.nombre)}» se borrarán el ${fechaCorta(fechaBorrado(d))}.</b> El deseo ya está cumplido; su rincón se queda en Mi nido.</p></div>`).join('')}
     <p class="titulo" style="font-size:30px">Ajustes</p>
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
@@ -1426,6 +1452,9 @@ function resumen(dias){
   porBloque.forEach(x=>L.push(`· ${NOMBRE_BLOQUE[x.b]}: ${x.c.n} ${x.c.n===1?'ejercicio':'ejercicios'} · ${pc(x.c.bien,x.c.n)} a la primera · ${x.c.pista} con pista · ${x.c.juntos} con ayuda completa`));
   if(cuestan.length){L.push('');L.push('Lo que más cuesta (necesitó ayuda):');cuestan.forEach(x=>L.push(`· ${x.o} (${x.ay} de ${x.n} ${x.n===1?'vez':'veces'})`))}
   if(salen.length){L.push('');L.push('Sale sin ayuda: '+salen.join(', '))}
+  const an=Object.entries(S.animo||{}).filter(([f,v])=>f>=dIso&&v!=='salto').sort();
+  if(an.length){L.push('');L.push('Cómo ha dicho sentirse al entrar:');L.push(an.map(([f,v])=>`${fechaCorta(f)}: ${({bien:'bien',regular:'regular',mal:'mal'})[v]}`).join(' · '));
+    const m=malesSemana();if(m>=3)L.push(`Atención: en los últimos 7 días ha dicho sentirse mal ${m} días.`)}
   if(S.deseos.length){L.push('');L.push('Deseos:');S.deseos.forEach(d=>L.push(`· ${d.nombre}: ${hilosDeseo(d)} de ${d.palabras.length} palabras${d.palabras.length&&hilosDeseo(d)===d.palabras.length?' · cumplido':''}`))}
   return{texto:L.join('\n'),tot,diasP,porBloque,cuestan,salen};
 }
@@ -1451,7 +1480,8 @@ function capaProgreso(){
         <span class="tb-barra" role="img" aria-label="${pc(x.c.bien,x.c.n)} % a la primera"><i style="width:${pc(x.c.bien,x.c.n)}%"></i><i class="p" style="width:${pc(x.c.pista,x.c.n)}%"></i></span>
         <span class="tb-n">${x.c.n}</span></div>`).join('')}
         <p class="ayuda" style="font-size:15px"><i class="leyenda-c"></i> a la primera <i class="leyenda-c p"></i> con pista <i class="leyenda-c j"></i> con ayuda completa</p></div>
-      ${R.cuestan.length?`<p><b>Lo que más cuesta:</b> ${R.cuestan.map(x=>esc(x.o)).join(', ')}</p>`:''}`
+      ${R.cuestan.length?`<p><b>Lo que más cuesta:</b> ${R.cuestan.map(x=>esc(x.o)).join(', ')}</p>`:''}
+      ${animoSemana().length?`<div class="animo-pro"><p><b>Cómo ha dicho sentirse</b> (últimos 7 días)</p><div class="fila" style="justify-content:flex-start;gap:8px">${animoSemana().map(([f,v])=>{const a=ANIMOS.find(x=>x[0]===v);return`<span class="animo-dia" title="${fechaCorta(f)}">${cara(a[2],a[3])}<small>${fechaCorta(f)}</small></span>`}).join('')}</div>${malesSemana()>=3?`<p class="aviso-foto">Ha dicho sentirse mal ${malesSemana()} días esta semana.</p>`:''}</div>`:''}`
       :'<p class="ayuda">Todavía no hay ejercicios en este periodo en esta tablet. Cuando practique, aquí aparecerá el resumen.</p>'}
       <div class="fila" style="justify-content:flex-start"><button type="button" class="boton primario" id="pr-compartir">Compartir resumen</button><button type="button" class="boton secundario" id="pr-copiar">Copiar texto</button></div>
       <p class="ayuda" id="pr-aviso" role="status" style="font-size:16px"></p>
@@ -1492,7 +1522,7 @@ aviso:`<h3>Titular</h3><p>Asociación Ayuda Afasia. NIF: ${PENDIENTE}. Domicilio
 <h3>Propiedad intelectual</h3><p>Los textos, los ejercicios, las ilustraciones de Lino y el diseño de Nido pertenecen a la Asociación Ayuda Afasia o se usan con permiso. No se pueden copiar ni distribuir sin su autorización.</p>
 <h3>Esta versión</h3><p>Esta es una versión de prueba. Los ejercicios y los textos están en revisión.</p>`,
 privacidad:`<h3>Responsable</h3><p>Asociación Ayuda Afasia. Contacto para protección de datos: ${PENDIENTE}.</p>
-<h3>Qué datos usa Nido</h3><p>El nombre de la persona, su nivel, sus ejercicios y su progreso, los deseos con sus fotos y, si la familia lo permite, grabaciones de su voz.</p>
+<h3>Qué datos usa Nido</h3><p>El nombre de la persona, su nivel, sus ejercicios y su progreso, cómo dice sentirse cada día, los deseos con sus fotos y, si la familia lo permite, grabaciones de su voz.</p>
 <h3>Dónde se guardan</h3><p>Solo en esta tablet. Nido no tiene cuentas ni servidor: no recibe ni almacena estos datos. No usa cookies de seguimiento ni herramientas de analítica.</p>
 <h3>Fotos de casa</h3><p>Solo se ponen en los deseos, con un máximo de 3 en curso. Cuando un deseo se cumple, sus fotos se borran a los 30 días.</p>
 <h3>Voz</h3><p>Las grabaciones son opcionales, se quedan en la tablet y se pueden borrar en el espacio profesional. Para entender lo que dice la persona, Nido usa el reconocimiento de voz del navegador: según el navegador, ese audio puede procesarse en los servidores de Apple o Google. Nido no lo guarda.</p>
@@ -1525,7 +1555,9 @@ let escuchaT=null;
 app.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
   if(a==='legal')return capaLegal(b.dataset.l);
-  if(a==='entrar'){if(!S.prueba&&!S.pruebaAplazada)return ir('pruebaIntro','durazno');return transicion('durazno',()=>{vista='inicio';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})}
+  if(a==='animo'){S.animo=S.animo||{};S.animo[hoyISO()]=b.dataset.v;guarda();const v=b.dataset.v;
+    return transicion('durazno',()=>{vista='inicio';render();di(v==='salto'?`Hola, ${S.nombre}. Palabras que vuelven a ti.`:`Gracias por contármelo, ${S.nombre}.`)})}
+  if(a==='entrar'){if(!S.prueba&&!S.pruebaAplazada)return ir('pruebaIntro','durazno');if(animoPendiente())return ir('animo','durazno');return transicion('durazno',()=>{vista='inicio';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})}
   if(a==='prueba-empieza'){empiezaPrueba();return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
   if(a==='prueba-luego'){S.pruebaAplazada=true;guarda();return ir('inicio','durazno')}
   if(a==='familia')return abreFamilia();
