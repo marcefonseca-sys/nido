@@ -231,6 +231,18 @@ a.boton.primario{color:var(--sobre-salvia)}
 .rev-fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
 .aviso-foto{color:var(--dorado-oscuro);font-weight:700}
 .boton[disabled]{opacity:.45;cursor:not-allowed}
+.pie{margin-top:auto;padding-top:16px;border-top:1px solid var(--linea,#e6dfd4);display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;justify-content:space-between;font-size:15px;color:var(--tinta-suave)}
+.pie p{margin:0}
+.pie nav{display:flex;flex-wrap:wrap;align-items:center;gap:0 4px}
+.pie-enlace{background:none;border:0;min-height:44px;padding:0 6px;font:inherit;font-size:15px;color:var(--tinta);text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.pie-enlace:hover{color:var(--salvia-viva-oscura)}
+.centro+.pie{width:100%}
+.legal-txt{display:flex;flex-direction:column;gap:10px;max-width:62ch}
+.legal-txt h3{font-size:20px;margin:10px 0 0}
+.legal-txt p,.legal-txt li{font-size:18px;line-height:1.5;margin:0}
+.legal-txt ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.pendiente{background:var(--luz-dorada);color:var(--dorado-oscuro);border-radius:6px;padding:0 6px;font-weight:700}
+.borrador{margin:0;font-size:16px;color:var(--dorado-oscuro);font-weight:700}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -587,7 +599,7 @@ function pBienvenida(){
     <p class="lema2">hilo a hilo, palabra a palabra</p>
     <button class="boton primario grande" data-a="entrar">Empezar ${I.sigue}</button>
     <p class="nota">Esta simulación lee en voz alta. Sube el volumen de la tablet.</p>
-  </div></section>`);
+  </div>${pie()}</section>`);
 }
 
 function pInicio(){
@@ -624,6 +636,7 @@ function pInicio(){
         <span class="bloque-txt"><span class="bloque-nombre">${b.nombre}</span><span class="bloque-desc">${b.desc}</span></span>
         ${b.listo?'':'<span class="pronto">Muy pronto</span>'}</button>`).join('')}</div>
     </div>
+    ${pie()}
   </section>`,montaNidos);
 }
 
@@ -1367,10 +1380,52 @@ function capaProgreso(){
   };
   pinta();
 }
+
+/* ---------- pie e información legal ----------
+   Textos en borrador: la Asociación debe revisarlos y completar sus datos antes de publicar. */
+const LEGAL=[['aviso','Aviso legal'],['privacidad','Privacidad'],['accesibilidad','Accesibilidad'],['contacto','Contacto']];
+function pie(){return`<footer class="pie"><p>© ${new Date().getFullYear()} Asociación Ayuda Afasia. Todos los derechos reservados.</p>
+  <nav aria-label="Información legal">${LEGAL.map(([k,l])=>`<button type="button" class="pie-enlace" data-a="legal" data-l="${k}">${l}</button>`).join('<span aria-hidden="true">·</span>')}</nav></footer>`}
+const PENDIENTE='<span class="pendiente">[pendiente de la Asociación]</span>';
+const TEXTO_LEGAL={
+aviso:`<h3>Titular</h3><p>Asociación Ayuda Afasia. NIF: ${PENDIENTE}. Domicilio: ${PENDIENTE}. Inscrita en el Registro de Asociaciones con el número ${PENDIENTE}. Correo: ${PENDIENTE}.</p>
+<h3>Qué es Nido</h3><p>Nido es una herramienta gratuita para practicar el lenguaje en casa. Complementa la intervención logopédica; no la sustituye. No es un producto sanitario y no hace diagnósticos. La prueba inicial solo sugiere un nivel para empezar.</p>
+<h3>Propiedad intelectual</h3><p>Los textos, los ejercicios, las ilustraciones de Lino y el diseño de Nido pertenecen a la Asociación Ayuda Afasia o se usan con permiso. No se pueden copiar ni distribuir sin su autorización.</p>
+<h3>Esta versión</h3><p>Esta es una versión de prueba. Los ejercicios y los textos están en revisión.</p>`,
+privacidad:`<h3>Responsable</h3><p>Asociación Ayuda Afasia. Contacto para protección de datos: ${PENDIENTE}.</p>
+<h3>Qué datos usa Nido</h3><p>El nombre de la persona, su nivel, sus ejercicios y su progreso, los deseos con sus fotos y, si la familia lo permite, grabaciones de su voz.</p>
+<h3>Dónde se guardan</h3><p>Solo en esta tablet. Nido no tiene cuentas ni servidor: no recibe ni almacena estos datos. No usa cookies de seguimiento ni herramientas de analítica.</p>
+<h3>Fotos de casa</h3><p>Solo se ponen en los deseos, con un máximo de 3 en curso. Cuando un deseo se cumple, sus fotos se borran a los 30 días.</p>
+<h3>Voz</h3><p>Las grabaciones son opcionales, se quedan en la tablet y se pueden borrar en el espacio profesional. Para entender lo que dice la persona, Nido usa el reconocimiento de voz del navegador: según el navegador, ese audio puede procesarse en los servidores de Apple o Google. Nido no lo guarda.</p>
+<h3>Informe semanal</h3><p>Solo sale de la tablet cuando la familia toca «Enviar», con su propio correo o aplicación, y llega a la profesional que la familia ha indicado.</p>
+<h3>Tus derechos</h3><p>Puedes borrarlo todo en Familia › Ajustes › «Empezar de cero». Para cualquier consulta sobre tus datos: ${PENDIENTE}.</p>`,
+accesibilidad:`<p>Nido está pensada para personas con afasia y sus familias.</p>
+<ul><li>Letra grande (mínimo 18 px) y muy legible (Atkinson Hyperlegible).</li><li>Buen contraste de color y botones grandes.</li><li>Lino lee en voz alta todo lo que aparece en pantalla.</li><li>Sin límites de tiempo y sin mensajes de error en rojo.</li><li>Se puede responder hablando o tocando.</li></ul>
+<p>Esta versión de prueba todavía no tiene una auditoría de accesibilidad completa. Si algo te resulta difícil, cuéntanoslo: ${PENDIENTE}.</p>`,
+contacto:`<p>Asociación Ayuda Afasia</p><p>Correo: ${PENDIENTE}</p><p>Teléfono: ${PENDIENTE}</p><p>Web: ${PENDIENTE}</p>`
+};
+function capaLegal(k){
+  calla();const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
+  const pinta=k=>{const t=LEGAL.find(x=>x[0]===k)[1];
+    capa.innerHTML=`<div class="capa-caja ancha legal" role="dialog" aria-label="${t}">
+      <span class="etiqueta">Asociación Ayuda Afasia</span>
+      <div class="pestanas" role="tablist">${LEGAL.map(([x,l])=>`<button type="button" role="tab" class="pestana ${x===k?'activa':''}" aria-selected="${x===k}" data-lg="${x}">${l}</button>`).join('')}</div>
+      <p class="titulo" style="font-size:30px">${t}</p>
+      <p class="borrador">Borrador para que la Asociación lo revise y complete.</p>
+      <div class="legal-txt">${TEXTO_LEGAL[k]}</div>
+      <div class="fila" style="justify-content:flex-end"><button type="button" class="boton primario" data-cerrar>Cerrar</button></div>
+    </div>`;
+    capa.querySelectorAll('[data-lg]').forEach(b=>b.addEventListener('click',()=>pinta(b.dataset.lg)));
+    capa.querySelector('[data-cerrar]').addEventListener('click',()=>capa.remove());
+    capa.querySelector('[data-cerrar]').focus();
+  };
+  pinta(k);
+}
 /* ---------- acciones ---------- */
 let escuchaT=null;
 app.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+  if(a==='legal')return capaLegal(b.dataset.l);
   if(a==='entrar'){if(!S.prueba&&!S.pruebaAplazada)return ir('pruebaIntro','durazno');return transicion('durazno',()=>{vista='inicio';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})}
   if(a==='prueba-empieza'){empiezaPrueba();return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
   if(a==='prueba-luego'){S.pruebaAplazada=true;guarda();return ir('inicio','durazno')}
