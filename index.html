@@ -224,6 +224,7 @@ h1,h2,p{margin:0}
 #fi input[type=text],#fi input[type=email]{min-height:56px;border-radius:14px;border:2px solid var(--borde);padding:0 16px;font:inherit;background:var(--lino)}
 a.boton{text-decoration:none;color:inherit}
 a.boton.primario{color:var(--sobre-salvia)}
+.aviso-prueba{background:var(--lino);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -548,6 +549,8 @@ function render(){
   if(vista==='ejercicio')return pEjercicio();
   if(vista==='final')return pFinal();
   if(vista==='nido')return pNido();
+  if(vista==='pruebaIntro')return pPruebaIntro();
+  if(vista==='pruebaFin')return pPruebaFin();
 }
 
 function pBienvenida(){
@@ -598,6 +601,37 @@ function pInicio(){
   </section>`,montaNidos);
 }
 
+
+/* ---------- prueba inicial (orientativa, no diagnóstica) ----------
+   8 ejercicios de menos a más. Puntos: a la primera 2, con pista 1, con ayuda completa 0.
+   Base (comprensión, máx. 4) · Medio (nombrar, categorías, verbo; máx. 8) · Alto (sinónimos, ordenar; máx. 4). */
+function listaPrueba(){
+  const den=(w,modo,nivel,g)=>Object.assign(itemPalabra(w),{modo,nivel,g,d:undefined});
+  const gen=(b,n,k,g)=>Object.assign({b},G[b][n][k],{nivel:n,g,d:undefined});
+  return[den('llave','elige',1,'base'),den('manzana','elige',1,'base'),den('reloj','nombra',2,'medio'),den('libro','nombra',2,'medio'),
+    gen('sem',2,0,'medio'),gen('sin',2,0,'medio'),gen('sem',3,0,'alto'),gen('sin',3,1,'alto')];
+}
+function empiezaPrueba(){
+  ses={items:listaPrueba(),i:0,res:[],vueltas:[],nuevos:0,deseoVisto:true,cumplidosHoy:[],prueba:true,puntos:{base:0,medio:0,alto:0}};
+  empiezaItem();
+}
+function nivelSugerido(p){if(p.base<3)return 1;if(p.medio>=6&&p.alto>=3)return 3;if(p.medio>=4)return 2;return 1}
+function pPruebaIntro(){
+  pinta(`<section class="pantalla"><div class="centro">
+    <img class="ilus" src="${M.bienvenida}" alt="Lino te mira" style="height:min(260px,34vh);width:auto">
+    <h1 class="titulo saludo" style="font-size:clamp(34px,5vw,48px)">Vamos a conocernos, ${esc(S.nombre)}</h1>
+    <p class="lema" style="max-width:34ch">Son 8 ejercicios cortos para que Lino sepa por dónde empezar. Sin prisa: no pasa nada si alguno no sale.</p>
+    <div class="fila"><button class="boton secundario" data-a="prueba-luego">Ahora no</button><button class="boton primario grande" data-a="prueba-empieza">Empezar ${I.sigue}</button></div>
+  </div></section>`,()=>di(`Vamos a conocernos, ${S.nombre}. Son ocho ejercicios cortos para que Lino sepa por dónde empezar. Sin prisa.`));
+}
+function pPruebaFin(){
+  pinta(`<section class="pantalla"><div class="centro">
+    <img class="ilus" src="${M.celebra}" alt="Lino celebra con las alas abiertas" style="height:min(280px,36vh);width:auto">
+    <h1 class="titulo saludo" style="font-size:clamp(34px,5vw,50px)">Gracias, ${esc(S.nombre)}</h1>
+    <p class="lema" style="max-width:34ch">Ya sé por dónde empezar. Cada palabra que vuelva será un hilo de tu nido.</p>
+    <button class="boton primario grande" data-a="terminar">Ir a mi nido ${I.sigue}</button>
+  </div></section>`,()=>di(`Gracias, ${S.nombre}. Ya sé por dónde empezar.`));
+}
 /* ---- sesión ---- */
 function itemPalabra(w){
   const p=PALABRAS.find(x=>x.w.toLowerCase()===w.toLowerCase());const d=deseoDe(w);
@@ -620,6 +654,7 @@ function notaImagen(it){
   if(S.fotos[it.w]||S.fotos[it.w.toLowerCase()])return'';
   return it.e?'<span class="provisional">Imagen provisional · aquí irá la foto de casa</span>':`<span class="provisional">Sin foto · la familia puede añadirla en Familia</span>`;
 }
+function nv(){return ses&&ses.it&&ses.it.nivel?ses.it.nivel:S.nivel}
 function deBloque(b,n){return baraja(G[b][S.nivel]).slice(0,n).map(x=>Object.assign({b:b},x))}
 function nuevaSesion(bloque){
   let lista;
@@ -630,7 +665,7 @@ function nuevaSesion(bloque){
   empiezaItem();
 }
 function empiezaItem(){const it=ses.items[ses.i];ses.it=it;ses.ayuda=false;ses.descartes=[];ses.opc=null;ses.msg=null;ses.colocadas=[];ses.fallos=0;
-  if(it.tipo==='nombrar')ses.fase=S.nivel===1?'elige':'nombra';
+  if(it.tipo==='nombrar')ses.fase=it.modo||(nv()===1?'elige':'nombra');
   else{ses.fase='pregunta';if(it.tipo==='ordena')ses.fichas=baraja(it.seq.map((t,k)=>({t,k})))}}
 function opcionesPara(it,n){return baraja([it].concat(baraja(PALABRAS.filter(p=>p.w!==it.w)).slice(0,n-1)))}
 function silabasPara(it){
@@ -644,7 +679,7 @@ function cabecera(){
   return`<div class="barra">
     <button class="txt-btn" data-a="salir">${I.atras} Salir</button>
     <div class="puntos"><ol aria-label="Ejercicio ${ses.i+1} de ${ses.items.length}">${pts}</ol><span>${ses.i+1} de ${ses.items.length}</span></div>
-    ${(()=>{const bl=BLOQUES.find(x=>x.id===ses.it.b);return`<span class="chip bloque-${bl.id}" style="background:var(--w0);color:var(--ic)">${bl.ico}${bl.nombre}</span>`})()}</div>`;
+    ${ses.prueba?'<span class="chip" style="background:var(--luz-dorada);color:var(--dorado-oscuro)">Conociéndonos</span>':''}${ses.prueba?'':(()=>{const bl=BLOQUES.find(x=>x.id===ses.it.b);return`<span class="chip bloque-${bl.id}" style="background:var(--w0);color:var(--ic)">${bl.ico}${bl.nombre}</span>`})()}</div>`;
 }
 function pEjercicio(){
   if(ses.it.tipo!=='nombrar')return pGen();
@@ -656,9 +691,9 @@ function pEjercicio(){
   let izq,der='';
   const fotoHTML=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="Foto: ${esc(it.w)}">${imagen(it)}${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}${notaImagen(it)}</div>`;
   izq=fotoHTML;
-  const enun={elige:`¿Dónde está ${art(it.w)}?`,nombra:'¿Qué es esto?',escucha:'¿Qué es esto?',confirma:'¿Te ha salido?',pista1:'¿Qué es esto?',opciones:S.nivel===3&&it.s.length>1?'Completa la palabra':'¿Cuál es?',bien:'',juntos:''}[f];
+  const enun={elige:`¿Dónde está ${art(it.w)}?`,nombra:'¿Qué es esto?',escucha:'¿Qué es esto?',confirma:'¿Te ha salido?',pista1:'¿Qué es esto?',opciones:nv()===3&&it.s.length>1?'Completa la palabra':'¿Cuál es?',bien:'',juntos:''}[f];
   const msg=ses.msg?`<div class="mensaje ${ses.msg.t}"><p class="titulo">${ses.msg.a}</p>${ses.msg.b?`<p>${ses.msg.b}</p>`:''}</div>`:'';
-  if(S.nivel===1&&(f==='elige'||f==='bien'||f==='juntos')){
+  if(nv()===1&&(f==='elige'||f==='bien'||f==='juntos')){
     if(!ses.opc)ses.opc=opcionesPara(it,2);
     izq=`<div class="lado"><img class="ilus lino-mini ${f==='bien'?'hop':''}" src="${linoImg}" alt="${linoAlt}" style="height:240px;max-width:90%">${msg}</div>`;
     der=`<div class="lado">${f==='elige'?`<div class="pregunta"><h2>${enun}</h2><button class="escuchar" data-a="oir" aria-label="Escuchar otra vez">${I.alt}</button></div>`:''}
@@ -670,13 +705,13 @@ function pEjercicio(){
     if(f==='nombra'||f==='escucha'||f==='pista1'){
       ctl=`<div class="voz ${f==='escucha'?'escuchando':''}"><button class="voz-btn" data-a="mic" aria-label="${f==='escucha'?'Te escucho':'Responder hablando'}">${I.mic}</button>
         <span class="voz-rotulo">${f==='escucha'?'Te escucho…':'Toca y di la palabra'}</span><span class="ayuda">Sin prisa</span></div>
-        ${f!=='escucha'?`<button class="boton secundario" data-a="alternativa">${S.nivel===3&&it.s.length>1?'Prefiero escribir':'Prefiero elegir'}</button>`:''}`;
+        ${f!=='escucha'?`<button class="boton secundario" data-a="alternativa">${nv()===3&&it.s.length>1?'Prefiero escribir':'Prefiero elegir'}</button>`:''}`;
     }
     if(f==='pista1')ctl=`<div class="pista"><span class="pasos" aria-label="Pista 1 de 3"><i class="si"></i><i></i><i></i></span><span>Empieza por…</span><b>${(it.s.length>1?it.s[0]:it.w.slice(0,1)).toUpperCase()}…</b><button class="escuchar" data-a="oirpista" aria-label="Escuchar la pista">${I.alt}</button></div>`+ctl;
     if(f==='confirma')ctl=`<div class="fila"><button class="boton primario" data-a="dicho">Sí, lo he dicho</button><button class="boton secundario" data-a="nosale">No me sale</button></div>
         <p class="nota">${notaVoz()}</p>`;
     if(f==='opciones'){
-      if(S.nivel===3&&it.s.length>1){
+      if(nv()===3&&it.s.length>1){
         if(!ses.opc)ses.opc=silabasPara(it);
         ctl=`<p class="completar" aria-label="${it.s.slice(0,-1).join('')} y falta el final">${it.s.slice(0,-1).join('').toUpperCase()}<u>&nbsp;</u></p>
           <div class="opciones" style="--n:3">${ses.opc.map(s=>`<button class="opcion ${ses.descartes.includes(s)?'fuera':''}" data-a="silaba" data-s="${s}" ${ses.descartes.includes(s)?'disabled':''}>${s.toUpperCase()}</button>`).join('')}</div>`;
@@ -700,7 +735,7 @@ function lee(){
   if(f==='elige')di(`¿Dónde está ${art(it.w)}?`);
   else if(f==='nombra')di('¿Qué es esto?');
   else if(f==='pista1')di((ses.msg?ses.msg.voz+' ':'')+'Empieza por '+(it.s.length>1?it.s[0]:it.w.slice(0,1)));
-  else if(f==='opciones')di((ses.msg&&ses.msg.voz?ses.msg.voz+' ':'')+(S.nivel===3&&it.s.length>1?'Completa la palabra.':'¿Cuál es? '+ses.opc.map(o=>o.w).join(', ')));
+  else if(f==='opciones')di((ses.msg&&ses.msg.voz?ses.msg.voz+' ':'')+(nv()===3&&it.s.length>1?'Completa la palabra.':'¿Cuál es? '+ses.opc.map(o=>o.w).join(', ')));
   else if(f==='juntos')di(ses.msg.voz);
   else if(f==='bien')di(ses.msg.voz);
 }
@@ -801,6 +836,10 @@ function siguiente(){
   ses.paraMeta=null;
   if(ses.res[ses.i]===undefined)ses.res[ses.i]='ayuda';
   ses.i++;
+  if(ses.i>=ses.items.length&&ses.prueba){
+    const n=nivelSugerido(ses.puntos);S.nivel=n;S.prueba={fecha:hoyISO(),nivel:n,puntos:ses.puntos};guarda();ses=null;
+    return ir('pruebaFin','durazno');
+  }
   if(ses.i>=ses.items.length){
     const cumplidos=S.deseos.filter(d=>d.palabras.length&&!S.cumplidos[d.id]&&hilosDeseo(d)===d.palabras.length).map(d=>d.id);
     cumplidos.forEach(k=>S.cumplidos[k]=true);guarda();ses.cumplidosHoy=cumplidos;
@@ -884,6 +923,8 @@ function capaFamilia(tab){
     ${informePendiente()?`<div class="aviso-informe"><p><b>El informe semanal para ${esc(S.pro.nombre||'la profesional')} está listo.</b></p><div class="fila" style="justify-content:flex-start">${S.pro.email?`<a class="boton primario chico" id="inf-mail" href="${mailtoInforme()}">Enviar por correo</a>`:''}<button type="button" class="boton secundario chico" id="inf-share">${S.pro.email?'Otra forma':'Enviar'}</button></div></div>`:''}
     <p class="titulo" style="font-size:30px">Ajustes</p>
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
+    <div class="aviso-prueba">${S.prueba?`<p><b>Prueba inicial del ${fechaCorta(S.prueba.fecha)}:</b> nivel sugerido «${NIVELES[S.prueba.nivel]}». Es orientativa, no diagnóstica: se puede ajustar abajo.</p>`:'<p><b>Prueba inicial pendiente.</b> Son 8 ejercicios cortos que sugieren el nivel para empezar.</p>'}
+      <button type="button" class="boton secundario chico" id="f-prueba">${S.prueba?'Repetir la prueba inicial':'Hacer la prueba inicial'}</button></div>
     <fieldset class="campo"><legend>Nivel</legend>${[1,2,3].map(n=>`<label class="radio"><input type="radio" name="nivel" id="f-nivel-${n}" value="${n}" ${S.nivel===n?'checked':''}><span><b>${NIVELES[n]}</b><br><span class="ayuda" style="font-size:16px">${NIVEL_DET[n]}</span></span></label>`).join('')}</fieldset>
     <label class="radio"><input type="checkbox" id="f-voz" ${S.voz?'checked':''}> Lino lee en voz alta</label>
     <label class="radio"><input type="checkbox" id="f-grabar" ${S.grabar!==false?'checked':''}> <span>Guardar grabaciones de su voz<br><span class="ayuda" style="font-size:16px">Se quedan solo en esta tablet, para escucharlas en Progreso.</span></span></label>
@@ -908,6 +949,7 @@ function capaFamilia(tab){
   capa.querySelector('#f-probar').addEventListener('click',()=>{leeVoz();const nom=capa.querySelector('#f-nombre').value.trim()||S.nombre;di(`Hola, ${nom}. Soy Lino. Vamos a tejer el nido, palabra a palabra.`,true)});
   capa.querySelector('#f-nombre').focus();
   conectaPestanas(capa);
+  capa.querySelector('#f-prueba').addEventListener('click',()=>{capa.remove();empiezaPrueba();transicion('durazno',()=>{vista='ejercicio';render();lee()})});
   const im=capa.querySelector('#inf-mail');if(im)im.addEventListener('click',()=>{marcaInforme();setTimeout(()=>{capa.remove();capaFamilia()},400)});
   const is=capa.querySelector('#inf-share');if(is)is.addEventListener('click',()=>enviaInforme().then(ok=>{if(ok){capa.remove();capaFamilia()}}));
 }
@@ -1069,6 +1111,36 @@ function listaGrabaciones(){return abreDB().then(db=>new Promise(ok=>{const r=db
 function borraGrabaciones(){return abreDB().then(db=>new Promise(ok=>{const tx=db.transaction('grabaciones','readwrite');tx.objectStore('grabaciones').clear();tx.oncomplete=ok;tx.onerror=ok})).catch(()=>{})}
 
 
+
+/* ---------- PIN de la familia ---------- */
+let famHasta=0;
+function abreFamilia(tab){
+  if(Date.now()<famHasta){famHasta=Date.now()+5*60e3;return capaFamilia(tab)}
+  const nuevo=!S.famPin;const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
+  let primero=null,error='';
+  const pintaPin=()=>{
+    capa.innerHTML=`<form class="capa-caja" id="fpf" style="max-width:480px;align-items:center;text-align:center">
+      <span class="etiqueta">Espacio de la familia</span>
+      <p class="titulo" style="font-size:28px">${nuevo?(primero?'Repite el PIN':'Crea un PIN para la familia'):'Escribe el PIN de la familia'}</p>
+      <p class="ayuda" style="font-size:16px">${nuevo?'Cuatro números. Así los ajustes, los deseos y las fotos solo los cambia la familia.':'Aquí se preparan los deseos, las fotos y los ajustes.'}</p>
+      <label for="fpf-pin" class="sr">PIN de cuatro números</label>
+      <input type="password" id="fpf-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pin">
+      ${error?`<p class="error" role="alert">${error}</p>`:''}
+      <div class="fila"><button type="button" class="boton secundario" data-cerrar>Volver</button><button class="boton primario" type="submit">${nuevo?'Seguir':'Entrar'}</button></div>
+      ${nuevo?'':'<p class="ayuda" style="font-size:15px">¿Se ha olvidado? La profesional puede restablecerlo desde su espacio.</p>'}
+    </form>`;
+    const inp=capa.querySelector('#fpf-pin');inp.focus();
+    capa.querySelector('[data-cerrar]').addEventListener('click',()=>capa.remove());
+    capa.querySelector('#fpf').addEventListener('submit',e=>{e.preventDefault();const v=inp.value.trim();
+      if(!/^\d{4}$/.test(v)){error='Escribe cuatro números.';return pintaPin()}
+      if(nuevo){if(!primero){primero=v;error='';return pintaPin()}
+        if(v!==primero){primero=null;error='No coinciden. Vuelve a crearlo.';return pintaPin()}
+        S.famPin=v;guarda()}
+      else if(v!==S.famPin){error='Ese PIN no es. Prueba otra vez.';return pintaPin()}
+      famHasta=Date.now()+5*60e3;capa.remove();capaFamilia(tab)});
+  };
+  pintaPin();
+}
 /* ---------- espacio profesional (logopeda o psicóloga) ---------- */
 let proAbierto=false;
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -1119,7 +1191,7 @@ function capaPro(){
 }
 function capaInforme(){
   const c=proCfg();const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
-  let aviso='';
+  let aviso='',armadoFam=false;
   const pinta=()=>{
     capa.innerHTML=`<form class="capa-caja ancha" id="fi">
       <span class="etiqueta">Espacio profesional</span>${pestanasPro('informe')}
@@ -1135,7 +1207,7 @@ function capaInforme(){
         <button type="button" class="boton secundario" id="fi-share">${c.email?'Otra forma':'Enviar ahora'}</button></div>
       ${aviso?`<p class="ayuda" role="status">${aviso}</p>`:''}
       <p class="nota" style="max-width:none">En esta simulación los datos se quedan en la tablet y el envío lo hace la familia con un toque. Que la profesional entre a distancia y reciba el informe sola necesita un servidor seguro con el consentimiento del paciente; eso le tocaría a la app de la Asociación.</p>
-      <div class="fila" style="justify-content:space-between"><button type="button" class="txt-btn" id="fi-pin">Cambiar el PIN</button><button type="button" class="boton secundario" id="fi-salir">Cerrar y bloquear</button></div>
+      <div class="fila" style="justify-content:space-between"><span class="fila"><button type="button" class="txt-btn" id="fi-pin">Cambiar el PIN</button>${S.famPin?`<button type="button" class="txt-btn" id="fi-famreset">${armadoFam?'Toca otra vez para restablecerlo':'Restablecer el PIN de la familia'}</button>`:''}</span><button type="button" class="boton secundario" id="fi-salir">Cerrar y bloquear</button></div>
     </form>`;
     conectaPro(capa);
     const q=x=>capa.querySelector(x);
@@ -1145,6 +1217,7 @@ function capaInforme(){
       guarda();aviso='Guardado.';pinta()});
     const m=q('#fi-mail');if(m)m.addEventListener('click',()=>{marcaInforme();setTimeout(()=>{aviso='Se ha abierto el correo con el informe.';pinta()},300)});
     q('#fi-share').addEventListener('click',()=>{recoge();guarda();enviaInforme().then(ok=>{aviso=ok?'Informe preparado para enviar.':'No se ha podido abrir el menú de compartir.';pinta()})});
+    const fr=q('#fi-famreset');if(fr)fr.addEventListener('click',()=>{if(!armadoFam){armadoFam=true;return pinta()}armadoFam=false;S.famPin=null;guarda();aviso='PIN de la familia restablecido. La próxima vez que entren, crearán uno nuevo.';pinta()});
     q('#fi-pin').addEventListener('click',()=>{c.pin=null;guarda();proAbierto=false;capa.remove();capaPro()});
     q('#fi-salir').addEventListener('click',()=>{proAbierto=false;capa.remove();render()});
   };
@@ -1154,6 +1227,7 @@ function capaInforme(){
 function registra(){
   const it=ses.it;if(!S.historial)S.historial=[];
   const r=ses.fase==='juntos'?'juntos':ses.res[ses.i]==='bien'?'bien':'pista';
+  if(ses.prueba){ses.puntos[it.g]+=r==='bien'?2:r==='pista'?1:0;return}
   S.historial.push({f:hoyISO(),b:it.b,o:it.tipo==='nombrar'?it.w:etiqueta(it),r,n:S.nivel});
   if(S.historial.length>3000)S.historial=S.historial.slice(-3000);guarda();
 }
@@ -1238,15 +1312,17 @@ function capaProgreso(){
 let escuchaT=null;
 app.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
-  if(a==='entrar'){return transicion('durazno',()=>{vista='inicio';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})}
-  if(a==='familia')return capaFamilia();
+  if(a==='entrar'){if(!S.prueba&&!S.pruebaAplazada)return ir('pruebaIntro','durazno');return transicion('durazno',()=>{vista='inicio';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})}
+  if(a==='prueba-empieza'){empiezaPrueba();return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
+  if(a==='prueba-luego'){S.pruebaAplazada=true;guarda();return ir('inicio','durazno')}
+  if(a==='familia')return abreFamilia();
   if(a==='pro')return capaPro();
-  if(a==='editar-deseos')return capaFamilia('deseos');
+  if(a==='editar-deseos')return abreFamilia('deseos');
   if(a==='bloque'){const bl=BLOQUES.find(x=>x.id===b.dataset.b);if(bl.listo){nuevaSesion(bl.id);return transicion('durazno',()=>{vista='ejercicio';render();lee()})}return capaPronto(bl)}
   if(a==='practicar'){nuevaSesion();return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
   if(a==='minido')return ir('nido','durazno');
   if(a==='volver'||a==='terminar')return ir('inicio');
-  if(a==='salir'){clearTimeout(escuchaT);if(rec){try{rec.abort()}catch(e){}rec=null}return ir('inicio')}
+  if(a==='salir'){clearTimeout(escuchaT);if(ses&&ses.prueba){ses=null;S.pruebaAplazada=true;guarda()}if(rec){try{rec.abort()}catch(e){}rec=null}return ir('inicio')}
   if(!ses)return;
   const it=ses.it;
   if(a==='oir')return lee();
@@ -1273,7 +1349,7 @@ app.addEventListener('click',e=>{
   if(a==='elige'){
     const w=b.dataset.w;
     if(w===it.w)return acierto();
-    if(S.nivel===1){ses.ayuda=true;return fase('juntos',{t:'juntos',a:`Es «${it.w}»`,b:'Vamos a decirlo juntos.',voz:`Es ${it.w}. Vamos a decirlo juntos: ${it.w}.`},'salvia')}
+    if(nv()===1){ses.ayuda=true;return fase('juntos',{t:'juntos',a:`Es «${it.w}»`,b:'Vamos a decirlo juntos.',voz:`Es ${it.w}. Vamos a decirlo juntos: ${it.w}.`},'salvia')}
     ses.descartes.push(w);ses.ayuda=true;
     if(!ses.msg||ses.msg.t!=='casi')return fase('opciones',{t:'casi',a:'Casi',b:'Prueba con otra.',voz:'Casi. Prueba con otra.'},'salvia');
     return juntos();
