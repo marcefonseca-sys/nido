@@ -245,6 +245,8 @@ a.boton.primario{color:var(--sobre-salvia)}
 .legal-txt ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
 .pendiente{background:var(--luz-dorada);color:var(--dorado-oscuro);border-radius:6px;padding:0 6px;font-weight:700}
 .borrador{margin:0;font-size:16px;color:var(--dorado-oscuro);font-weight:700}
+.nombre-grande{width:min(420px,100%);min-height:72px;border-radius:18px;border:2px solid var(--borde);padding:0 20px;font:inherit;font-size:30px;text-align:center;background:var(--papel);color:var(--tinta)}
+.nombre-grande:focus{outline:3px solid var(--salvia-viva);outline-offset:2px}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -420,7 +422,7 @@ const N_EJ=6;
 
 /* ---------- estado ---------- */
 const KEY='nido-simulacion-v1';
-function base(){return{nombre:'Juan',nivel:2,voz:true,hilos:Array.from({length:30},(_,i)=>i%9===4?'maria':(i%3?'rama':'rama-clara')),logradas:{teléfono:true},dias:[],cumplidos:{},deseos:JSON.parse(JSON.stringify(DESEOS_BASE)),fotos:{},revFotos:{}}}
+function base(){return{nombre:'',nivel:2,voz:true,hilos:Array.from({length:30},(_,i)=>i%9===4?'maria':(i%3?'rama':'rama-clara')),logradas:{teléfono:true},dias:[],cumplidos:{},deseos:JSON.parse(JSON.stringify(DESEOS_BASE)),fotos:{},revFotos:{}}}
 let S=base();
 try{const g=JSON.parse(localStorage.getItem(KEY)||'null');if(g&&Array.isArray(g.hilos))S=Object.assign(base(),g);}catch(e){}
 function guarda(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
@@ -584,6 +586,7 @@ function ir(v,mancha){const f=()=>{vista=v;render()};mancha?transicion(mancha,f)
 
 function render(){
   calla();
+  if(!S.nombre)return pNombre();
   if(vista==='bienvenida')return pBienvenida();
   if(vista==='inicio')return pInicio();
   if(vista==='ejercicio')return pEjercicio();
@@ -593,6 +596,25 @@ function render(){
   if(vista==='pruebaFin')return pPruebaFin();
 }
 
+/* Primera vez: Lino pregunta el nombre antes de nada */
+function pNombre(){
+  pinta(`<section class="pantalla"><form class="centro" id="fn" autocomplete="off">
+    <img class="ilus" src="${M.bienvenida}" alt="Lino, el petirrojo, te mira" style="height:min(260px,32vh);width:auto">
+    <h1 class="titulo saludo">Hola, soy Lino</h1>
+    <label class="lema" for="fn-nombre">¿Cómo te llamas?</label>
+    <input type="text" id="fn-nombre" class="nombre-grande" maxlength="24" placeholder="Tu nombre" autocapitalize="words" spellcheck="false">
+    <p class="error" id="fn-error" role="alert" hidden>Escribe tu nombre para seguir.</p>
+    <button class="boton primario grande" type="submit">Seguir ${I.sigue}</button>
+    <p class="nota">Si cuesta escribirlo, puede hacerlo alguien de casa.</p>
+  </form>${pie()}</section>`,()=>{
+    const f=document.getElementById('fn'),inp=document.getElementById('fn-nombre');
+    inp.focus();
+    f.addEventListener('submit',e=>{e.preventDefault();const v=inp.value.trim().replace(/\s+/g,' ');
+      if(!v){document.getElementById('fn-error').hidden=false;inp.focus();return}
+      S.nombre=v.charAt(0).toUpperCase()+v.slice(1);guarda();
+      transicion('durazno',()=>{vista='bienvenida';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})});
+  });
+}
 function pBienvenida(){
   pinta(`<section class="pantalla"><div class="centro">
     <img class="ilus" src="${M.bienvenida}" alt="Lino, el petirrojo, te mira" style="height:min(300px,38vh);width:auto">
