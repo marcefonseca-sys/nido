@@ -217,6 +217,13 @@ h1,h2,p{margin:0}
 .voz-pal li{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .voz-pal audio{height:40px;max-width:100%}
 @media (max-width:560px){.cifras{grid-template-columns:repeat(2,minmax(0,1fr))}.tb-fila{grid-template-columns:1fr 3ch}.tb-fila .tb-barra{grid-column:1/-1;grid-row:2}}
+.punto{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--terracota);margin-left:6px}
+.aviso-informe{background:var(--luz-dorada);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.pin{font:inherit;font-size:40px;letter-spacing:.5em;text-align:center;width:220px;min-height:72px;border-radius:16px;border:2px solid var(--borde);background:var(--lino);padding-left:.5em}
+.sel{min-height:56px;border-radius:14px;border:2px solid var(--borde);padding:0 12px;font:inherit;background:var(--lino)}
+#fi input[type=text],#fi input[type=email]{min-height:56px;border-radius:14px;border:2px solid var(--borde);padding:0 16px;font:inherit;background:var(--lino)}
+a.boton{text-decoration:none;color:inherit}
+a.boton.primario{color:var(--sobre-salvia)}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -558,7 +565,7 @@ function pInicio(){
   const sem=semana();const nd=diasSemana();
   pinta(`<section class="pantalla">
     <div class="barra"><span class="marca">Nido</span>
-      <button class="txt-btn" data-a="familia">${I.candado} Familia</button></div>
+      <div class="fila"><button class="txt-btn" data-a="familia">${I.candado} Familia${informePendiente()?'<span class="punto" aria-label="Informe semanal listo"></span>':''}</button><button class="txt-btn" data-a="pro">${I.candado} Profesional</button></div></div>
     <div class="inicio">
       <div class="inicio-izq">
         <div class="saludo-fila">
@@ -771,7 +778,12 @@ function leeGen(){
   let t=pre+it.q;
   if(it.txt)t+=' '+it.show.toLowerCase()+'.';
   if(it.f)t+=' '+it.f[0]+'… '+(it.f[1]==='.'?'':it.f[1]);
-  if(it.tipo==='elige'&&(S.nivel===1||it.o[0][0])&&!it.grid)t+=' '+it.o.filter((o,k)=>!ses.descartes.includes(k)).map(o=>o[1]).join(', o ')+'?';
+  if(it.tipo==='elige'&&!it.grid){
+    const ops=it.o.filter((o,k)=>!ses.descartes.includes(k)).map(o=>o[1]);
+    if(ops.some(o=>/[.?!]$/.test(o)))t+=' '+ops.map((o,k)=>(k?'¿O '+o.charAt(0).toLowerCase()+o.slice(1):'¿'+o).replace(/[.?!]$/,'')+'?').join(' ');
+    else if(ops.length>1)t+=' ¿'+May(ops.slice(0,-1).join(', '))+' o '+ops[ops.length-1]+'?';
+  }
+  if(it.tipo==='ordena'){const usadas=ses.colocadas.map(c=>c.k);t+=' '+ses.fichas.filter(x=>!usadas.includes(x.k)).map(x=>x.t.replace(/[.,]$/,'')).join('… ')+'.'}
   di(t);
 }
 function juntosGen(){
@@ -865,11 +877,11 @@ function capaPronto(bl){
 }
 function capaFamilia(tab){
   if(tab==='deseos')return capaDeseos();
-  if(tab==='progreso')return capaProgreso();
   const capa=document.createElement('div');capa.className='capa';
   capa.innerHTML=`<form class="capa-caja" id="ff">
     <span class="etiqueta">Espacio de la familia</span>
     ${pestanas('ajustes')}
+    ${informePendiente()?`<div class="aviso-informe"><p><b>El informe semanal para ${esc(S.pro.nombre||'la profesional')} está listo.</b></p><div class="fila" style="justify-content:flex-start">${S.pro.email?`<a class="boton primario chico" id="inf-mail" href="${mailtoInforme()}">Enviar por correo</a>`:''}<button type="button" class="boton secundario chico" id="inf-share">${S.pro.email?'Otra forma':'Enviar'}</button></div></div>`:''}
     <p class="titulo" style="font-size:30px">Ajustes</p>
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
     <fieldset class="campo"><legend>Nivel</legend>${[1,2,3].map(n=>`<label class="radio"><input type="radio" name="nivel" id="f-nivel-${n}" value="${n}" ${S.nivel===n?'checked':''}><span><b>${NIVELES[n]}</b><br><span class="ayuda" style="font-size:16px">${NIVEL_DET[n]}</span></span></label>`).join('')}</fieldset>
@@ -896,8 +908,10 @@ function capaFamilia(tab){
   capa.querySelector('#f-probar').addEventListener('click',()=>{leeVoz();const nom=capa.querySelector('#f-nombre').value.trim()||S.nombre;di(`Hola, ${nom}. Soy Lino. Vamos a tejer el nido, palabra a palabra.`,true)});
   capa.querySelector('#f-nombre').focus();
   conectaPestanas(capa);
+  const im=capa.querySelector('#inf-mail');if(im)im.addEventListener('click',()=>{marcaInforme();setTimeout(()=>{capa.remove();capaFamilia()},400)});
+  const is=capa.querySelector('#inf-share');if(is)is.addEventListener('click',()=>enviaInforme().then(ok=>{if(ok){capa.remove();capaFamilia()}}));
 }
-function pestanas(act){return`<div class="pestanas" role="tablist">${[['ajustes','Ajustes'],['deseos','Deseos'],['progreso','Progreso']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-tab="${k}">${l}</button>`).join('')}</div>`}
+function pestanas(act){return`<div class="pestanas" role="tablist">${[['ajustes','Ajustes'],['deseos','Deseos']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-tab="${k}">${l}</button>`).join('')}</div>`}
 function conectaPestanas(capa){capa.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();capaFamilia(b.dataset.tab)}))}
 
 /* ---- Deseos: lista y editor ---- */
@@ -1054,6 +1068,88 @@ function guardaGrabacion(meta,blob){
 function listaGrabaciones(){return abreDB().then(db=>new Promise(ok=>{const r=db.transaction('grabaciones').objectStore('grabaciones').getAll();r.onsuccess=()=>ok(r.result||[]);r.onerror=()=>ok([])})).catch(()=>[])}
 function borraGrabaciones(){return abreDB().then(db=>new Promise(ok=>{const tx=db.transaction('grabaciones','readwrite');tx.objectStore('grabaciones').clear();tx.oncomplete=ok;tx.onerror=ok})).catch(()=>{})}
 
+
+/* ---------- espacio profesional (logopeda o psicóloga) ---------- */
+let proAbierto=false;
+const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function proCfg(){if(!S.pro)S.pro={pin:null,nombre:'',email:'',dia:1,ultimo:null};return S.pro}
+function informePendiente(){
+  const c=proCfg();if(!c.pin||!(c.email||c.nombre))return false;if(!(S.historial||[]).length)return false;
+  const hoy=new Date();if(!c.ultimo)return hoy.getDay()===c.dia;
+  const dias=Math.floor((hoy-new Date(c.ultimo+'T12:00'))/864e5);
+  return dias>=7||(dias>=1&&hoy.getDay()===c.dia&&dias>=6);
+}
+function textoInforme(){return resumen(7).texto+'\n\nEnviado desde Nido.'}
+function mailtoInforme(){const c=proCfg();return'mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent('Informe semanal de Nido · '+S.nombre)+'&body='+encodeURIComponent((c.nombre?'Hola, '+c.nombre+':\n\n':'')+textoInforme())}
+function marcaInforme(){proCfg().ultimo=hoyISO();guarda()}
+function enviaInforme(){
+  const t=textoInforme();
+  if(navigator.share)return navigator.share({title:'Informe semanal de Nido · '+S.nombre,text:t}).then(()=>{marcaInforme();return true}).catch(()=>false);
+  return navigator.clipboard.writeText(t).then(()=>{marcaInforme();return true}).catch(()=>false);
+}
+function pestanasPro(act){return`<div class="pestanas" role="tablist">${[['progreso','Progreso'],['informe','Informe semanal']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-pro="${k}">${l}</button>`).join('')}</div>`}
+function conectaPro(capa){capa.querySelectorAll('[data-pro]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();b.dataset.pro==='informe'?capaInforme():capaProgreso()}))}
+function capaPro(){
+  if(proAbierto)return capaProgreso();
+  const c=proCfg(),nuevo=!c.pin;
+  const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
+  let primero=null,error='';
+  const pinta=()=>{
+    capa.innerHTML=`<form class="capa-caja" id="fp" style="max-width:480px;align-items:center;text-align:center">
+      <span class="etiqueta">Espacio profesional</span>
+      <p class="titulo" style="font-size:28px">${nuevo?(primero?'Repite el PIN':'Crea un PIN para la logopeda o psicóloga'):'Escribe el PIN'}</p>
+      <p class="ayuda" style="font-size:16px">${nuevo?'Cuatro números. Solo la profesional debería conocerlo. Aquí verá cómo va su paciente y preparará el informe semanal.':'Este espacio es para la logopeda o la psicóloga.'}</p>
+      <label for="fp-pin" class="sr">PIN de cuatro números</label>
+      <input type="password" id="fp-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pin">
+      ${error?`<p class="error" role="alert">${error}</p>`:''}
+      <div class="fila"><button type="button" class="boton secundario" data-cerrar>Volver</button><button class="boton primario" type="submit">${nuevo?'Seguir':'Entrar'}</button></div>
+      ${nuevo?'':'<p class="ayuda" style="font-size:15px">¿Se ha olvidado? En esta simulación se puede empezar de cero desde Familia.</p>'}
+    </form>`;
+    const inp=capa.querySelector('#fp-pin');inp.focus();
+    capa.querySelector('[data-cerrar]').addEventListener('click',()=>capa.remove());
+    capa.querySelector('#fp').addEventListener('submit',e=>{e.preventDefault();const v=inp.value.trim();
+      if(!/^\d{4}$/.test(v)){error='Escribe cuatro números.';return pinta()}
+      if(nuevo){if(!primero){primero=v;error='';return pinta()}
+        if(v!==primero){primero=null;error='No coinciden. Vuelve a crearlo.';return pinta()}
+        c.pin=v;guarda();proAbierto=true;capa.remove();return capaInforme()}
+      if(v!==c.pin){error='Ese PIN no es. Prueba otra vez.';return pinta()}
+      proAbierto=true;capa.remove();capaProgreso()});
+  };
+  pinta();
+}
+function capaInforme(){
+  const c=proCfg();const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
+  let aviso='';
+  const pinta=()=>{
+    capa.innerHTML=`<form class="capa-caja ancha" id="fi">
+      <span class="etiqueta">Espacio profesional</span>${pestanasPro('informe')}
+      <p class="titulo" style="font-size:30px">Informe semanal</p>
+      <p class="ayuda">Cada semana Nido prepara un informe básico del progreso: días de práctica, ejercicios por bloque, lo que más cuesta y cómo van los deseos.</p>
+      <div class="campo"><label for="fi-nombre">Nombre de la profesional</label><input type="text" id="fi-nombre" value="${esc(c.nombre)}" placeholder="Laura, logopeda" maxlength="40" autocomplete="off"></div>
+      <div class="campo"><label for="fi-email">Su correo</label><input type="email" id="fi-email" value="${esc(c.email)}" placeholder="laura@centro.es" maxlength="80" autocomplete="off"></div>
+      <div class="campo"><label for="fi-dia">Día del informe</label><select id="fi-dia" class="sel">${[1,2,3,4,5,6,0].map(d=>`<option value="${d}" ${c.dia===d?'selected':''}>${May(DIAS_SEM[d])}</option>`).join('')}</select></div>
+      <p class="ayuda" style="font-size:16px">${c.ultimo?`Último informe enviado el ${fechaCorta(c.ultimo)}.`:'Todavía no se ha enviado ningún informe.'} Ese día, al abrir Nido, la familia verá un aviso en Familia para enviarlo con un toque.</p>
+      <div class="fila" style="justify-content:flex-start">
+        <button class="boton primario" type="submit">Guardar</button>
+        ${c.email?`<a class="boton secundario" id="fi-mail" href="${mailtoInforme()}">Enviar ahora por correo</a>`:''}
+        <button type="button" class="boton secundario" id="fi-share">${c.email?'Otra forma':'Enviar ahora'}</button></div>
+      ${aviso?`<p class="ayuda" role="status">${aviso}</p>`:''}
+      <p class="nota" style="max-width:none">En esta simulación los datos se quedan en la tablet y el envío lo hace la familia con un toque. Que la profesional entre a distancia y reciba el informe sola necesita un servidor seguro con el consentimiento del paciente; eso le tocaría a la app de la Asociación.</p>
+      <div class="fila" style="justify-content:space-between"><button type="button" class="txt-btn" id="fi-pin">Cambiar el PIN</button><button type="button" class="boton secundario" id="fi-salir">Cerrar y bloquear</button></div>
+    </form>`;
+    conectaPro(capa);
+    const q=x=>capa.querySelector(x);
+    const recoge=()=>{c.nombre=q('#fi-nombre').value.trim();c.email=q('#fi-email').value.trim();c.dia=+q('#fi-dia').value};
+    q('#fi').addEventListener('submit',e=>{e.preventDefault();recoge();
+      if(c.email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)){aviso='Ese correo no parece completo. Revísalo.';return pinta()}
+      guarda();aviso='Guardado.';pinta()});
+    const m=q('#fi-mail');if(m)m.addEventListener('click',()=>{marcaInforme();setTimeout(()=>{aviso='Se ha abierto el correo con el informe.';pinta()},300)});
+    q('#fi-share').addEventListener('click',()=>{recoge();guarda();enviaInforme().then(ok=>{aviso=ok?'Informe preparado para enviar.':'No se ha podido abrir el menú de compartir.';pinta()})});
+    q('#fi-pin').addEventListener('click',()=>{c.pin=null;guarda();proAbierto=false;capa.remove();capaPro()});
+    q('#fi-salir').addEventListener('click',()=>{proAbierto=false;capa.remove();render()});
+  };
+  pinta();
+}
 /* ---------- historial y resumen para la logopeda ---------- */
 function registra(){
   const it=ses.it;if(!S.historial)S.historial=[];
@@ -1098,7 +1194,7 @@ function capaProgreso(){
     const porPal={};gr.forEach(g=>{(porPal[g.palabra]=porPal[g.palabra]||[]).push(g)});
     const pc=(a,b)=>b?Math.round(a/b*100):0;
     capa.innerHTML=`<div class="capa-caja ancha">
-      <span class="etiqueta">Espacio de la familia</span>${pestanas('progreso')}
+      <span class="etiqueta">Espacio profesional</span>${pestanasPro('progreso')}
       <div class="barra"><p class="titulo" style="font-size:30px">Progreso</p>
         <div class="pestanas" role="group" aria-label="Periodo">${[[7,'7 días'],[30,'30 días']].map(([d,l])=>`<button type="button" class="pestana ${dias===d?'activa':''}" data-dias="${d}" aria-pressed="${dias===d}">${l}</button>`).join('')}</div></div>
       ${R.tot.n?`<div class="cifras">
@@ -1122,11 +1218,11 @@ function capaProgreso(){
       ${gr.length?Object.entries(porPal).map(([pal,l])=>`<div class="voz-pal"><b>${esc(pal)}</b><ul>${l.slice(0,6).map(g=>{const u=URL.createObjectURL(g.blob);urls.push(u);
         return`<li><span class="ayuda" style="font-size:15px">${fechaCorta(g.fecha.slice(0,10))} · ${g.ok?'salió':'con ayuda'}</span><audio controls preload="none" src="${u}"></audio></li>`}).join('')}</ul></div>`).join('')
       :'<p class="ayuda">Aún no hay grabaciones. Se guardan cuando responde hablando con el micrófono verde, desde la dirección web de la app.</p>'}
-      <div class="fila" style="justify-content:space-between">${gr.length?`<button type="button" class="txt-btn" id="pr-borrar">${armado?'Toca otra vez para borrar todas':'Borrar grabaciones'}</button>`:'<span></span>'}<button type="button" class="boton secundario" data-cerrar>Cerrar</button></div>
+      <div class="fila" style="justify-content:space-between">${gr.length?`<button type="button" class="txt-btn" id="pr-borrar">${armado?'Toca otra vez para borrar todas':'Borrar grabaciones'}</button>`:'<span></span>'}<button type="button" class="boton secundario" data-cerrar>Cerrar y bloquear</button></div>
     </div>`;
-    conectaPestanas(capa);
+    conectaPro(capa);
     capa.querySelectorAll('[data-dias]').forEach(b=>b.addEventListener('click',()=>{dias=+b.dataset.dias;pinta()}));
-    capa.querySelector('[data-cerrar]').addEventListener('click',()=>{limpia();capa.remove()});
+    capa.querySelector('[data-cerrar]').addEventListener('click',()=>{limpia();proAbierto=false;capa.remove()});
     const aviso=t=>{capa.querySelector('#pr-aviso').textContent=t};
     const copiar=()=>navigator.clipboard.writeText(R.texto).then(()=>aviso('Resumen copiado. Pégalo en WhatsApp o en un correo.')).catch(()=>{const d=capa.querySelector('details');d.open=true;const r=document.createRange();r.selectNodeContents(capa.querySelector('#pr-texto'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);aviso('Texto seleccionado: cópialo con el menú del sistema.')});
     capa.querySelector('#pr-copiar').addEventListener('click',copiar);
@@ -1144,6 +1240,7 @@ app.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
   if(a==='entrar'){return transicion('durazno',()=>{vista='inicio';render();di(`Hola, ${S.nombre}. Palabras que vuelven a ti.`)})}
   if(a==='familia')return capaFamilia();
+  if(a==='pro')return capaPro();
   if(a==='editar-deseos')return capaFamilia('deseos');
   if(a==='bloque'){const bl=BLOQUES.find(x=>x.id===b.dataset.b);if(bl.listo){nuevaSesion(bl.id);return transicion('durazno',()=>{vista='ejercicio';render();lee()})}return capaPronto(bl)}
   if(a==='practicar'){nuevaSesion();return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
