@@ -1080,11 +1080,11 @@ function informePendiente(){
   return dias>=7||(dias>=1&&hoy.getDay()===c.dia&&dias>=6);
 }
 function textoInforme(){return resumen(7).texto+'\n\nEnviado desde Nido.'}
-function mailtoInforme(){const c=proCfg();return'mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent('Informe semanal de Nido · '+S.nombre)+'&body='+encodeURIComponent((c.nombre?'Hola, '+c.nombre+':\n\n':'')+textoInforme())}
+function mailtoInforme(){const c=proCfg();return'mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent('Informe semanal de Nido · Paciente '+S.nombre)+'&body='+encodeURIComponent((c.nombre?'Hola, '+c.nombre+':\n\n':'')+textoInforme())}
 function marcaInforme(){proCfg().ultimo=hoyISO();guarda()}
 function enviaInforme(){
   const t=textoInforme();
-  if(navigator.share)return navigator.share({title:'Informe semanal de Nido · '+S.nombre,text:t}).then(()=>{marcaInforme();return true}).catch(()=>false);
+  if(navigator.share)return navigator.share({title:'Informe semanal de Nido · Paciente '+S.nombre,text:t}).then(()=>{marcaInforme();return true}).catch(()=>false);
   return navigator.clipboard.writeText(t).then(()=>{marcaInforme();return true}).catch(()=>false);
 }
 function pestanasPro(act){return`<div class="pestanas" role="tablist">${[['progreso','Progreso'],['informe','Informe semanal']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-pro="${k}">${l}</button>`).join('')}</div>`}
@@ -1171,7 +1171,7 @@ function resumen(dias){
   const cuestan=Object.entries(porObj).map(([o,rs])=>({o,ay:rs.filter(r=>r!=='bien').length,n:rs.length})).filter(x=>x.ay).sort((a,b)=>b.ay-a.ay||b.n-a.n).slice(0,8);
   const salen=Object.entries(porObj).filter(([o,rs])=>rs.every(r=>r==='bien')).map(([o])=>o).slice(0,15);
   const L=[];
-  L.push(`Resumen de Nido · ${S.nombre}`);
+  L.push(`Resumen de Nido · Paciente ${S.nombre}`);
   L.push(`${fechaCorta(dIso)} – ${fechaCorta(hoyISO())} (últimos ${dias} días) · Nivel: ${NIVELES[S.nivel]}`);
   L.push('');
   if(!h.length){L.push('Todavía no hay ejercicios en este periodo.');return{texto:L.join('\n'),tot,diasP,porBloque,cuestan,salen}}
@@ -1227,7 +1227,7 @@ function capaProgreso(){
     const copiar=()=>navigator.clipboard.writeText(R.texto).then(()=>aviso('Resumen copiado. Pégalo en WhatsApp o en un correo.')).catch(()=>{const d=capa.querySelector('details');d.open=true;const r=document.createRange();r.selectNodeContents(capa.querySelector('#pr-texto'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);aviso('Texto seleccionado: cópialo con el menú del sistema.')});
     capa.querySelector('#pr-copiar').addEventListener('click',copiar);
     capa.querySelector('#pr-compartir').addEventListener('click',()=>{
-      if(navigator.share)navigator.share({title:'Resumen de Nido · '+S.nombre,text:R.texto}).then(()=>aviso('Resumen compartido.')).catch(e=>{if(e&&e.name==='AbortError')return;copiar()});
+      if(navigator.share)navigator.share({title:'Resumen de Nido · Paciente '+S.nombre,text:R.texto}).then(()=>aviso('Resumen compartido.')).catch(e=>{if(e&&e.name==='AbortError')return;copiar()});
       else copiar();
     });
     const bb=capa.querySelector('#pr-borrar');if(bb)bb.addEventListener('click',()=>{if(!armado){armado=true;return pinta()}armado=false;borraGrabaciones().then(pinta)});
