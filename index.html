@@ -225,6 +225,12 @@ h1,h2,p{margin:0}
 a.boton{text-decoration:none;color:inherit}
 a.boton.primario{color:var(--sobre-salvia)}
 .aviso-prueba{background:var(--lino);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.rev-deseo{display:flex;flex-direction:column;gap:10px}
+.rev-fotos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.rev-fotos li{background:var(--lino);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.rev-fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
+.aviso-foto{color:var(--dorado-oscuro);font-weight:700}
+.boton[disabled]{opacity:.45;cursor:not-allowed}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -400,11 +406,26 @@ const N_EJ=6;
 
 /* ---------- estado ---------- */
 const KEY='nido-simulacion-v1';
-function base(){return{nombre:'Juan',nivel:2,voz:true,hilos:Array.from({length:30},(_,i)=>i%9===4?'maria':(i%3?'rama':'rama-clara')),logradas:{teléfono:true},dias:[],cumplidos:{},deseos:JSON.parse(JSON.stringify(DESEOS_BASE)),fotos:{}}}
+function base(){return{nombre:'Juan',nivel:2,voz:true,hilos:Array.from({length:30},(_,i)=>i%9===4?'maria':(i%3?'rama':'rama-clara')),logradas:{teléfono:true},dias:[],cumplidos:{},deseos:JSON.parse(JSON.stringify(DESEOS_BASE)),fotos:{},revFotos:{}}}
 let S=base();
 try{const g=JSON.parse(localStorage.getItem(KEY)||'null');if(g&&Array.isArray(g.hilos))S=Object.assign(base(),g);}catch(e){}
 function guarda(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 const hoyISO=()=>new Date().toISOString().slice(0,10);
+/* ---- deseos: máximo 3 en curso; fotos solo en los deseos, borradas a los 30 días de cumplirse ---- */
+const MAX_DESEOS=3,DIAS_FOTO=30;
+function activos(){return S.deseos.filter(d=>!S.cumplidos[d.id])}
+function fotoDe(w){return S.fotos[w]||S.fotos[w.toLowerCase()]}
+function fotosDe(d){return d.palabras.filter(fotoDe)}
+function fechaBorrado(d){const f=S.cumplidos[d.id];if(!f||f===true)return null;const x=new Date(f+'T12:00');x.setDate(x.getDate()+DIAS_FOTO);return x.toISOString().slice(0,10)}
+function diasHasta(iso){return Math.round((new Date(iso+'T12:00')-new Date(hoyISO()+'T12:00'))/864e5)}
+function enUso(w,salvo){return S.deseos.some(x=>x.id!==salvo&&!S.cumplidos[x.id]&&x.palabras.some(y=>y.toLowerCase()===w.toLowerCase()))}
+function borraFotos(d){fotosDe(d).forEach(w=>{if(!enUso(w,d.id)){[w,w.toLowerCase()].forEach(k=>{delete S.fotos[k];if(S.revFotos)delete S.revFotos[k]})}})}
+function porCambiar(d){return d.palabras.filter(w=>fotoDe(w)&&(S.revFotos||{})[w]==='cambiar').length}
+function limpiaFotos(){let c=false;
+  Object.keys(S.cumplidos).forEach(k=>{if(S.cumplidos[k]===true){S.cumplidos[k]=hoyISO();c=true}});
+  S.deseos.forEach(d=>{const f=fechaBorrado(d);if(f&&diasHasta(f)<=0&&fotosDe(d).length){borraFotos(d);c=true}});
+  if(c)guarda()}
+function avisoFotos(){return S.deseos.filter(d=>{const f=fechaBorrado(d);return f&&fotosDe(d).length&&diasHasta(f)<=5})}
 const app=document.getElementById('app');
 app.innerHTML='<div id="vista"></div>';const vistaEl=document.getElementById('vista');
 let ses=null, vista='bienvenida', aciertosNombre=0;
@@ -632,6 +653,7 @@ function pPruebaFin(){
     <button class="boton primario grande" data-a="terminar">Ir a mi nido ${I.sigue}</button>
   </div></section>`,()=>di(`Gracias, ${S.nombre}. Ya sé por dónde empezar.`));
 }
+limpiaFotos();
 /* ---- sesión ---- */
 function itemPalabra(w){
   const p=PALABRAS.find(x=>x.w.toLowerCase()===w.toLowerCase());const d=deseoDe(w);
@@ -842,7 +864,7 @@ function siguiente(){
   }
   if(ses.i>=ses.items.length){
     const cumplidos=S.deseos.filter(d=>d.palabras.length&&!S.cumplidos[d.id]&&hilosDeseo(d)===d.palabras.length).map(d=>d.id);
-    cumplidos.forEach(k=>S.cumplidos[k]=true);guarda();ses.cumplidosHoy=cumplidos;
+    cumplidos.forEach(k=>S.cumplidos[k]=hoyISO());guarda();ses.cumplidosHoy=cumplidos;
     return ir('final',cumplidos.length?'terracota':'durazno');
   }
   empiezaItem();ses.msg=null;render();lee();
@@ -921,6 +943,7 @@ function capaFamilia(tab){
     <span class="etiqueta">Espacio de la familia</span>
     ${pestanas('ajustes')}
     ${informePendiente()?`<div class="aviso-informe"><p><b>El informe semanal para ${esc(S.pro.nombre||'la profesional')} está listo.</b></p><div class="fila" style="justify-content:flex-start">${S.pro.email?`<a class="boton primario chico" id="inf-mail" href="${mailtoInforme()}">Enviar por correo</a>`:''}<button type="button" class="boton secundario chico" id="inf-share">${S.pro.email?'Otra forma':'Enviar'}</button></div></div>`:''}
+    ${avisoFotos().map(d=>`<div class="aviso-prueba"><p><b>Las fotos de «${esc(d.nombre)}» se borrarán el ${fechaCorta(fechaBorrado(d))}.</b> El deseo ya está cumplido; su rincón se queda en Mi nido.</p></div>`).join('')}
     <p class="titulo" style="font-size:30px">Ajustes</p>
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
     <div class="aviso-prueba">${S.prueba?`<p><b>Prueba inicial del ${fechaCorta(S.prueba.fecha)}:</b> nivel sugerido «${NIVELES[S.prueba.nivel]}». Es orientativa, no diagnóstica: se puede ajustar abajo.</p>`:'<p><b>Prueba inicial pendiente.</b> Son 8 ejercicios cortos que sugieren el nivel para empezar.</p>'}
@@ -965,12 +988,16 @@ function capaDeseos(){
       <span class="etiqueta">Espacio de la familia</span>${pestanas('deseos')}
       <p class="titulo" style="font-size:30px">Deseos</p>
       <p class="ayuda">Las primeras cosas que ${esc(S.nombre)} quiere volver a decir. Cada deseo trae sus palabras, que Lino mezcla en las sesiones.</p>
+      <p class="ayuda" style="font-size:17px"><b>Deseos en curso: ${activos().length} de ${MAX_DESEOS}.</b> Pocos y claros ayudan más. Cuando uno se cumple, queda como rincón tejido en Mi nido y se puede añadir otro.</p>
       <ul class="lista-deseos">${S.deseos.map(d=>`<li>
         <span class="circ" aria-hidden="true">${d.icono}</span>
-        <span class="ld-txt"><b>${esc(d.nombre)}</b><span class="ayuda" style="font-size:16px">${d.frase?'«'+esc(d.frase)+'» · ':''}${d.palabras.length} ${d.palabras.length===1?'palabra':'palabras'}</span></span>
+        <span class="ld-txt"><b>${esc(d.nombre)}</b><span class="ayuda" style="font-size:16px">${d.frase?'«'+esc(d.frase)+'» · ':''}${d.palabras.length} ${d.palabras.length===1?'palabra':'palabras'}</span>${(()=>{const f=fechaBorrado(d),nf=fotosDe(d).length,pc=porCambiar(d);let t='';
+          if(S.cumplidos[d.id])t+=`<span class="ayuda ${f&&nf&&diasHasta(f)<=5?'aviso-foto':''}" style="font-size:16px">Rincón tejido${nf&&f?` · sus fotos se borran el ${fechaCorta(f)}`:''}</span>`;
+          if(pc)t+=`<span class="ayuda aviso-foto" style="font-size:16px">La logopeda pide cambiar ${pc} ${pc===1?'foto':'fotos'}</span>`;return t})()}</span>
         <button type="button" class="boton secundario chico" data-ed="${d.id}">Editar</button>
         <button type="button" class="txt-btn" data-del="${d.id}">${armado===d.id?'Toca otra vez para quitar':'Quitar'}</button></li>`).join('')||'<li class="ayuda">Todavía no hay ninguno.</li>'}</ul>
-      <div class="fila" style="justify-content:space-between"><button type="button" class="boton secundario" data-cerrar>Cerrar</button><button type="button" class="boton primario" data-nuevo>Añadir un deseo</button></div>
+      ${activos().length>=MAX_DESEOS?`<p class="ayuda" role="status" style="font-size:17px">Ya hay ${MAX_DESEOS} deseos en curso. Cuando se cumpla uno, podréis añadir otro.</p>`:''}
+      <div class="fila" style="justify-content:space-between"><button type="button" class="boton secundario" data-cerrar>Cerrar</button><button type="button" class="boton primario" data-nuevo ${activos().length>=MAX_DESEOS?'disabled':''}>Añadir un deseo</button></div>
     </div>`;
     conectaPestanas(capa);
     capa.querySelector('[data-cerrar]').addEventListener('click',()=>{capa.remove();render()});
@@ -978,6 +1005,7 @@ function capaDeseos(){
     capa.querySelectorAll('[data-ed]').forEach(b=>b.addEventListener('click',()=>editor(deseo(b.dataset.ed))));
     capa.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.del;
       if(armado!==id){armado=id;return lista()}
+      const dq=deseo(id);if(dq)borraFotos(dq);delete S.cumplidos[id];
       S.deseos=S.deseos.filter(d=>d.id!==id);armado=null;guarda();lista()}));
   };
   const editor=(orig)=>{
@@ -992,10 +1020,10 @@ function capaDeseos(){
         <fieldset class="campo"><legend>Dibujo</legend><div class="iconos">${ICONOS_DESEO.map((ic,k)=>`<label class="ico-op"><input type="radio" name="fd-ico" id="fd-ico-${k}" value="${ic}" ${d.icono===ic?'checked':''}><span>${ic}</span></label>`).join('')}</div></fieldset>
         <fieldset class="campo"><legend>Color de sus hilos</legend><div class="iconos">${COLORES_DESEO.map(([c,n],k)=>`<label class="ico-op"><input type="radio" name="fd-color" id="fd-color-${k}" value="${c}" ${d.color===c?'checked':''}><span style="background:${c}" aria-hidden="true"></span><b class="sr">${n}</b></label>`).join('')}</div></fieldset>
         <fieldset class="campo"><legend>Sus palabras</legend>
-          <p class="ayuda" style="font-size:16px">Una foto de casa ayuda a que la palabra vuelva: su taza, la cara de María, su bar. En la tablet, «Foto» deja hacerla con la cámara.</p>
+          <p class="ayuda" style="font-size:16px">Una foto de casa ayuda a que la palabra vuelva: su taza, la cara de María, su bar. En la tablet, «Foto» deja hacerla con la cámara. Las fotos se quedan solo en esta tablet y se borran 30 días después de cumplirse el deseo.</p>
           <ul class="lista-palabras">${d.palabras.map((w,k)=>{const it=itemPalabra(w);const f=S.fotos[w]||S.fotos[w.toLowerCase()];
             return`<li><span class="mini-foto">${f?`<img src="${f}" alt="">`:it.e?`<span>${it.e}</span>`:'<span class="ayuda" style="font-size:13px">sin foto</span>'}</span>
-            <b class="lp-w">${esc(w)}</b>
+            <b class="lp-w">${esc(w)}${f&&(S.revFotos||{})[w]==='cambiar'?'<span class="aviso-foto" style="display:block;font-size:15px">La logopeda pide otra foto</span>':''}</b>
             <label class="boton secundario chico" for="fd-foto-${k}">${f?'Cambiar foto':'Foto'}</label><input type="file" accept="image/*" id="fd-foto-${k}" data-foto="${esc(w)}" class="sr">
             <button type="button" class="txt-btn" data-quitar="${k}" aria-label="Quitar ${esc(w)}">Quitar</button></li>`}).join('')}</ul>
           <div class="fila" style="justify-content:flex-start;flex-wrap:nowrap"><input type="text" id="fd-nueva" placeholder="Escribe una palabra" maxlength="24" autocomplete="off" style="flex:1;min-width:0"><button type="button" class="boton secundario" id="fd-anade">Añadir</button></div>
@@ -1012,12 +1040,14 @@ function capaDeseos(){
       q('#fd-nueva').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();anade()}});
       capa.querySelectorAll('[data-quitar]').forEach(b=>b.addEventListener('click',()=>{recoge();d.palabras.splice(+b.dataset.quitar,1);pinta()}));
       capa.querySelectorAll('[data-foto]').forEach(inp=>inp.addEventListener('change',()=>{recoge();const file=inp.files&&inp.files[0];if(!file)return;
-        reduceFoto(file).then(url=>{S.fotos[inp.dataset.foto]=url;if(!guarda()){delete S.fotos[inp.dataset.foto];error='No queda espacio para más fotos en este dispositivo.'}else error='';pinta()})
+        reduceFoto(file).then(url=>{S.fotos[inp.dataset.foto]=url;if(S.revFotos)delete S.revFotos[inp.dataset.foto];if(!guarda()){delete S.fotos[inp.dataset.foto];error='No queda espacio para más fotos en este dispositivo.'}else error='';pinta()})
           .catch(()=>{error='No se ha podido abrir esa imagen. Prueba con otra foto.';pinta()})}));
       q('#fd-cancelar').addEventListener('click',lista);
       q('#fd').addEventListener('submit',e=>{e.preventDefault();recoge();
         if(!d.nombre){error='Escribe qué quiere poder hacer, por ejemplo «Llamar a María».';return pinta()}
         if(!d.palabras.length){error='Añade al menos una palabra para practicar.';return pinta()}
+        const vuelve=orig&&S.cumplidos[d.id]&&hilosDeseo(d)<d.palabras.length;
+        if((!orig||vuelve)&&activos().length>=MAX_DESEOS){error=`Ya hay ${MAX_DESEOS} deseos en curso. Cuando se cumpla uno, podréis añadir otro.`;return pinta()}
         const i=S.deseos.findIndex(x=>x.id===d.id);if(i>=0)S.deseos[i]=d;else S.deseos.push(d);
         if(orig&&hilosDeseo(d)<d.palabras.length)delete S.cumplidos[d.id];
         guarda();lista()});
@@ -1159,8 +1189,8 @@ function enviaInforme(){
   if(navigator.share)return navigator.share({title:'Informe semanal de Nido · Paciente '+S.nombre,text:t}).then(()=>{marcaInforme();return true}).catch(()=>false);
   return navigator.clipboard.writeText(t).then(()=>{marcaInforme();return true}).catch(()=>false);
 }
-function pestanasPro(act){return`<div class="pestanas" role="tablist">${[['progreso','Progreso'],['informe','Informe semanal']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-pro="${k}">${l}</button>`).join('')}</div>`}
-function conectaPro(capa){capa.querySelectorAll('[data-pro]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();b.dataset.pro==='informe'?capaInforme():capaProgreso()}))}
+function pestanasPro(act){return`<div class="pestanas" role="tablist">${[['progreso','Progreso'],['fotos','Fotos de casa'],['informe','Informe semanal']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-pro="${k}">${l}</button>`).join('')}</div>`}
+function conectaPro(capa){capa.querySelectorAll('[data-pro]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();b.dataset.pro==='informe'?capaInforme():b.dataset.pro==='fotos'?capaFotosPro():capaProgreso()}))}
 function capaPro(){
   if(proAbierto)return capaProgreso();
   const c=proCfg(),nuevo=!c.pin;
@@ -1186,6 +1216,27 @@ function capaPro(){
         c.pin=v;guarda();proAbierto=true;capa.remove();return capaInforme()}
       if(v!==c.pin){error='Ese PIN no es. Prueba otra vez.';return pinta()}
       proAbierto=true;capa.remove();capaProgreso()});
+  };
+  pinta();
+}
+function capaFotosPro(){
+  const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
+  const pinta=()=>{
+    const ds=S.deseos.filter(d=>fotosDe(d).length);
+    capa.innerHTML=`<div class="capa-caja ancha">
+      <span class="etiqueta">Espacio profesional</span>${pestanasPro('fotos')}
+      <p class="titulo" style="font-size:30px">Fotos de casa</p>
+      <p class="ayuda">La familia solo pone fotos en los deseos, con un máximo de ${MAX_DESEOS} en curso. Comprueba que cada foto muestre la palabra con claridad. Si una confunde, pide otra: la familia lo verá al editar el deseo.</p>
+      ${ds.length?ds.map(d=>`<section class="rev-deseo"><p class="titulo" style="font-size:22px">${d.icono} ${esc(d.nombre)}${S.cumplidos[d.id]?' <span class="ayuda" style="font-size:16px">· cumplido</span>':''}</p>
+        <ul class="rev-fotos">${fotosDe(d).map(w=>{const r=(S.revFotos||{})[w];return`<li><img src="${fotoDe(w)}" alt="Foto de ${esc(w)}"><b>${esc(w)}</b>
+          <div class="fila" style="gap:8px;justify-content:flex-start"><button type="button" class="boton chico ${r==='ok'?'primario':'secundario'}" data-rv="ok" data-w="${esc(w)}" aria-pressed="${r==='ok'}">Clara</button><button type="button" class="boton chico ${r==='cambiar'?'primario':'secundario'}" data-rv="cambiar" data-w="${esc(w)}" aria-pressed="${r==='cambiar'}">Pedir otra</button></div></li>`}).join('')}</ul></section>`).join(''):'<p class="ayuda">Todavía no hay fotos de casa.</p>'}
+      <p class="nota" style="max-width:none">Las fotos no salen de esta tablet. Las de los deseos cumplidos se borran solas a los ${DIAS_FOTO} días; el rincón del nido se queda.</p>
+      <div class="fila" style="justify-content:flex-end"><button type="button" class="boton secundario" id="fp-salir">Cerrar y bloquear</button></div>
+    </div>`;
+    conectaPro(capa);
+    capa.querySelectorAll('[data-rv]').forEach(b=>b.addEventListener('click',()=>{S.revFotos=S.revFotos||{};const w=b.dataset.w;
+      if(S.revFotos[w]===b.dataset.rv)delete S.revFotos[w];else S.revFotos[w]=b.dataset.rv;guarda();pinta()}));
+    capa.querySelector('#fp-salir').addEventListener('click',()=>{proAbierto=false;capa.remove();render()});
   };
   pinta();
 }
