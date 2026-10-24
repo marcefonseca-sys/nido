@@ -249,6 +249,15 @@ a.boton.primario{color:var(--sobre-salvia)}
 .nombre-grande:focus{outline:3px solid var(--salvia-viva);outline-offset:2px}
 .envio{display:flex;flex-direction:column;gap:10px}
 .envio p{margin:0}
+.silabas-caja{flex-direction:column;gap:18px;padding:20px}
+.sil-foto{width:min(180px,40%);aspect-ratio:1;border-radius:20px;overflow:hidden;display:grid;place-items:center;background:var(--arena)}
+.sil-foto img{width:100%;height:100%;object-fit:cover}.sil-foto .emo{font-size:90px}
+.silabeo{display:flex;align-items:flex-end;flex-wrap:wrap;justify-content:center;gap:4px;font-family:var(--f-texto);font-weight:700;font-size:clamp(48px,7vw,84px);line-height:1.1;color:var(--tinta)}
+.silabeo .sep{color:var(--salvia);font-weight:400;padding:0 2px}
+.silabeo .sil{padding:0 4px 6px;border-bottom:7px solid transparent;border-radius:4px;transition:border-color .25s,background .25s,color .25s}
+.silabeo .sil.on{border-bottom-color:var(--salvia-viva);background:var(--durazno-suave)}
+.silabeo .sil.todo{border-bottom-color:var(--salvia-viva)}
+.practicar-deseo{margin-top:8px;align-self:flex-start}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -467,15 +476,15 @@ function cargaVoces(){try{vocesES=speechSynthesis.getVoices().filter(v=>puntua(v
 try{cargaVoces();speechSynthesis.onvoiceschanged=cargaVoces}catch(e){}
 function vozElegida(){return vocesES.find(v=>v.name===S.vozNombre)||vocesES[0]||null}
 const vivas=new Set();
-function di(t,forzar,vel){
-  if(!S.voz&&!forzar)return;
+function di(t,forzar,vel,alEmpezar){
+  if(!S.voz&&!forzar){if(alEmpezar)document.querySelectorAll('.silabeo .sil').forEach(x=>x.classList.add('todo'));return}
   calla();const mio=turno;
   const partes=(String(t).match(/[^.:?!…]+[.:?!…]*/g)||[]).map(x=>x.trim()).filter(Boolean);
   const b=document.querySelector('.escuchar');if(b)b.classList.add('sonando');
   let k=0;
   const sigue=()=>{
     if(mio!==turno||k>=partes.length){if(b)b.classList.remove('sonando');return}
-    try{const txt=partes[k++];const u=new SpeechSynthesisUtterance(txt);const v=vozElegida();
+    try{if(alEmpezar)alEmpezar(k);const txt=partes[k++];const u=new SpeechSynthesisUtterance(txt);const v=vozElegida();
       u.lang=v?v.lang:'es-ES';if(v)u.voice=v;u.rate=vel||VELOCIDADES[S.velocidad]||.84;u.pitch=1;
       /* se guarda la frase hasta que acaba (Safari y Chrome a veces la pierden y no avisan del final)
          y un respaldo sigue con la siguiente si el aviso no llega */
@@ -648,11 +657,11 @@ function pInicio(){
           <p>${nd===0?'Esta semana empieza hoy.':`Esta semana has practicado ${nd} ${nd===1?'día':'días'}.`}</p>
         </div>
       </div>
-      <button class="tarjeta-nido" data-a="minido" aria-label="Ver mi nido y mis deseos">
+      <button class="tarjeta-nido" data-a="minido" aria-label="Ver mi nido y practicar mis deseos">
         <span class="titulo" style="font-size:26px">Tu nido</span>
         <span class="nido-caja" style="max-width:420px;align-self:center"><img class="ilus" src="${M.nido}" alt=""><canvas data-nido></canvas></span>
         <span><b style="font-size:28px">${S.hilos.length}</b> hilos tejidos · ${etapa(S.hilos.length)}</span>
-        <span style="display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--salvia-viva-oscura);font-size:18px">Ver mi nido y mis deseos <span style="width:20px;height:20px;display:inline-block">${I.sigue}</span></span>
+        <span style="display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--salvia-viva-oscura);font-size:18px">Ver mi nido y practicar mis deseos <span style="width:20px;height:20px;display:inline-block">${I.sigue}</span></span>
       </button>
     </div>
     <div class="bloques-zona">
@@ -698,6 +707,44 @@ function pPruebaFin(){
   </div></section>`,()=>di(`Gracias, ${S.nombre}. Ya sé por dónde empezar. Cada palabra que vuelva será un hilo de tu nido.`));
 }
 limpiaFotos();
+
+/* ---------- Practicar un deseo ----------
+   Una sesión solo con las palabras y la frase de un deseo, de menos a más:
+   1) cada palabra sílaba a sílaba (escuchar y repetir), 2) nombrarla con su foto,
+   3) completar la frase, 4) ordenar la frase, 5) decir la frase entera. */
+const limpiaP=w=>w.replace(/[.,;:!?¡¿«»"]/g,'').toLowerCase();
+function itemSilabas(w,d){const base=itemPalabra(w);const s=base.s&&base.s.length?base.s:silabas(w);
+  return Object.assign({},base,{tipo:'repite',fon:true,b:'des',d:d.id,t:May(w),s,sil:s.join('… ')})}
+function itemsFrase(d){
+  const fr=(d.frase||'').trim();const tok=fr.split(/\s+/).filter(Boolean);if(tok.length<2)return[];
+  const out=[];const x=`«${fr}»`;
+  // completar: falta una palabra del deseo (si está en la frase) o la más larga
+  let k=-1;tok.forEach((t,i)=>{if(d.palabras.some(w=>limpiaP(w)===limpiaP(t))&&(k<0||limpiaP(t).length>limpiaP(tok[k]).length))k=i});
+  if(k<0)k=tok.reduce((m,t,i)=>limpiaP(t).length>limpiaP(tok[m]).length?i:m,0);
+  const m=tok[k].match(/^([¡¿«"]*)(.*?)([.,;:!?»"]*)$/);const pal=m[2];
+  const pre=(tok.slice(0,k).join(' ')+(m[1]?' '+m[1]:'')).trim(),post=(m[3]+(k<tok.length-1?' '+tok.slice(k+1).join(' '):'')).trim();
+  const otras=[...new Set(d.palabras.concat(PALABRAS.map(p=>p.w)).filter(w=>limpiaP(w)!==limpiaP(pal)&&!tok.some(t=>limpiaP(t)===limpiaP(w))))];
+  const op=baraja([pal].concat(baraja(otras).slice(0,2)));
+  out.push({tipo:'elige',b:'des',d:d.id,q:'¿Qué palabra falta?',f:[pre,post],o:op.map(o=>['',o]),ok:op.indexOf(pal),p:'Piensa en lo que quieres decir.',x});
+  if(tok.length<=7)out.push({tipo:'ordena',b:'des',d:d.id,q:'Ordena la frase',seq:tok,p:`Empieza por «${tok[0].replace(/[.,;:!?]+$/,'')}».`,x});
+  out.push({tipo:'repite',b:'des',d:d.id,t:fr,sil:tok.join('… ')});
+  return out;
+}
+function sesionDeseo(d){
+  const pal=d.palabras.slice(0,3),lista=[];
+  pal.forEach(w=>{lista.push(itemSilabas(w,d));const it=Object.assign(itemPalabra(w),{b:'des',d:d.id});if(fotoDe(w)||it.e)lista.push(it)});
+  lista.push(...itemsFrase(d));
+  ses={items:lista,i:0,res:[],vueltas:[],nuevos:0,deseoVisto:true,cumplidosHoy:[],deseo:d.id};
+  empiezaItem();
+}
+function leeSilabas(forzar){
+  const it=ses.it;const sp=[...document.querySelectorAll('.silabeo .sil')];
+  sp.forEach(x=>x.classList.remove('on','todo'));
+  const partes=['Escucha y repite.'].concat(it.s.map(x=>x+'.'),[it.t+'.']);
+  di(partes.join(' '),forzar,.72,k=>{sp.forEach(x=>x.classList.remove('on'));
+    if(k>=1&&k<=it.s.length&&sp[k-1])sp[k-1].classList.add('on');
+    if(k===it.s.length+1)sp.forEach(x=>x.classList.add('todo'))});
+}
 /* ---- sesión ---- */
 function itemPalabra(w){
   const p=PALABRAS.find(x=>x.w.toLowerCase()===w.toLowerCase());const d=deseoDe(w);
@@ -745,7 +792,7 @@ function cabecera(){
   return`<div class="barra">
     <button class="txt-btn" data-a="salir">${I.atras} Salir</button>
     <div class="puntos"><ol aria-label="Ejercicio ${ses.i+1} de ${ses.items.length}">${pts}</ol><span>${ses.i+1} de ${ses.items.length}</span></div>
-    ${ses.prueba?'<span class="chip" style="background:var(--luz-dorada);color:var(--dorado-oscuro)">Conociéndonos</span>':''}${ses.prueba?'':(()=>{const bl=BLOQUES.find(x=>x.id===ses.it.b);return`<span class="chip bloque-${bl.id}" style="background:var(--w0);color:var(--ic)">${bl.ico}${bl.nombre}</span>`})()}</div>`;
+    ${ses.prueba?'<span class="chip" style="background:var(--luz-dorada);color:var(--dorado-oscuro)">Conociéndonos</span>':''}${ses.prueba?'':ses.deseo?(()=>{const d=deseo(ses.deseo)||{};return`<span class="chip" style="background:var(--durazno-suave);color:var(--tinta)">${d.icono||''} ${esc(d.nombre||'Mi deseo')}</span>`})():(()=>{const bl=BLOQUES.find(x=>x.id===ses.it.b);return`<span class="chip bloque-${bl.id}" style="background:var(--w0);color:var(--ic)">${bl.ico}${bl.nombre}</span>`})()}</div>`;
 }
 function pEjercicio(){
   if(ses.it.tipo!=='nombrar')return pGen();
@@ -818,7 +865,9 @@ function acierto(){
   const conNombre=aciertosNombre%3===1;
   ses.res[ses.i]=ses.ayuda?'ayuda':'bien';ses.vueltas.push(it.tipo==='nombrar'?it.w:etiqueta(it));
   S.hilos.push(it.d||((S.hilos.length%3)?'rama':'rama-clara'));ses.nuevos++;
-  const nueva=it.tipo==='nombrar'&&it.d&&!S.logradas[it.w];if(it.tipo==='nombrar'&&it.d)S.logradas[it.w]=true;
+  /* una palabra de un deseo «vuelve» al nombrarla con su imagen; si no tiene imagen (hola, un nombre sin foto), al repetirla bien a la primera sílaba a sílaba */
+  const cuenta=it.d&&(it.tipo==='nombrar'||(it.fon&&!ses.ayuda&&!(fotoDe(it.w)||it.e)));
+  const nueva=cuenta&&!S.logradas[it.w];if(cuenta)S.logradas[it.w]=true;
   if(!S.dias.includes(hoyISO()))S.dias.push(hoyISO());
   guarda();
   const t=['Eso es','Así se dice','Muy bien'][aciertosNombre%3];
@@ -847,13 +896,14 @@ function pGen(){
   const oirBtn=`<button class="escuchar" data-a="oir" aria-label="Escuchar otra vez">${I.alt}</button>`;
   const seguir=fin?`<button class="boton primario grande" data-a="seguir">Seguir ${I.sigue}</button>`:'';
   let estimulo='';
-  if(it.tipo==='repite')estimulo=`<div class="foto ${f==='bien'?'acierto':''}"><span class="repite">${it.t}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<span class="provisional">Escucha y repite</span></div>`;
+  if(it.fon)estimulo=`<div class="foto silabas-caja ${f==='bien'?'acierto':''}">${fotoDe(it.w)||it.e?`<div class="sil-foto">${imagen(it)}</div>`:''}<span class="silabeo" aria-label="${esc(it.t)}, sílaba a sílaba">${it.s.map((x,k)=>`<span class="sil ${f==='bien'?'todo':''}">${esc(k?x.toLowerCase():May(x.toLowerCase()))}</span>`).join('<span class="sep" aria-hidden="true">·</span>')}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<button class="boton secundario chico" data-a="oirsil">Otra vez, sílaba a sílaba</button></div>`;
+  else if(it.tipo==='repite')estimulo=`<div class="foto ${f==='bien'?'acierto':''}"><span class="repite">${it.t}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<span class="provisional">Escucha y repite</span></div>`;
   else if(it.show)estimulo=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="${it.txt?it.show:'Imagen'}">${it.txt?`<span class="repite">${it.show}</span>`:`<span class="emo">${it.show}</span>`}${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}</div>`;
   let ctl='';
   if(it.tipo==='elige'){
     const imgs=it.o.some(o=>o[0]);const n=it.grid?3:Math.min(it.o.length,imgs?4:3);
     const largas=!imgs&&it.o.some(o=>o[1].length>14);
-    const hueco=it.f?`<p class="frase-hueco">${it.f[0]} <u>${fin?it.o[it.ok][1]:'&nbsp;'}</u>${it.f[1]==='.'?'.':' '+it.f[1]}</p>`:'';
+    const hueco=it.f?`<p class="frase-hueco">${it.f[0]} <u>${fin?it.o[it.ok][1]:'&nbsp;'}</u>${/^[.,;:!?»]/.test(it.f[1])||!it.f[1]?it.f[1]:' '+it.f[1]}</p>`:'';
     ctl=hueco+`<div class="opciones ${largas?'una':''}" style="--n:${largas?1:n}">${it.o.map((o,k)=>{
       const cls=(fin&&k===it.ok?'ok':'')+' '+((fin&&k!==it.ok)||ses.descartes.includes(k)?'fuera':'')+(imgs?'':' txt');
       return`<button class="opcion ${cls}" data-a="gelige" data-i="${k}" ${fin||ses.descartes.includes(k)?'disabled':''} aria-label="${o[1]}">${o[0]?`<span class="emo">${o[0]}</span><span class="lbl">${o[1]}</span>`:May(o[1])}</button>`}).join('')}</div>`;
@@ -881,7 +931,7 @@ function pGen(){
 function leeGen(){
   const it=ses.it,f=ses.fase,pre=ses.msg&&ses.msg.voz?ses.msg.voz+' ':'';
   if(f==='bien'||f==='juntos')return di(ses.msg.voz);
-  if(it.tipo==='repite'){if(f==='pista1')return di(pre+'Escucha despacio. '+it.sil,false,.62);if(f==='pregunta')return di('Escucha y repite. '+it.t+'.');return}
+  if(it.tipo==='repite'){if(f==='pista1')return di(pre+'Escucha despacio. '+it.sil,false,.62);if(f==='pregunta')return it.fon?leeSilabas():di('Escucha y repite. '+it.t+'.');return}
   let t=pre+it.q;
   if(it.txt)t+=' '+it.show.toLowerCase()+'.';
   if(it.f)t+=' '+it.f[0]+'… '+(it.f[1]==='.'?'':it.f[1]);
@@ -970,7 +1020,7 @@ function pNido(){
         <h3>${esc(d.nombre)}</h3><p class="frase">${d.frase?'«'+esc(d.frase)+'»':''}</p>
         ${cum?`<p class="estado" style="color:var(--salvia-viva-oscura);display:flex;align-items:center;gap:6px"><span style="width:20px;height:20px">${I.ok}</span>Rincón tejido</p>`:
         `<div class="hilos" role="img" aria-label="${h} de ${t} palabras">${d.palabras.map(p=>`<i style="${S.logradas[p]?'background:'+d.color:''}"></i>`).join('')}</div><p class="estado" style="color:${textoColor(d.color)}">${h} de ${t} ya vuelven</p>`}
-      </div></div>`}).join('')}</div>
+      ${t?`<button class="boton primario chico practicar-deseo" data-a="practicar-deseo" data-d="${d.id}">Practicar ${I.sigue}</button>`:''}</div></div>`}).join('')}</div>
   </section>`,montaNidos);
 }
 
@@ -1352,7 +1402,7 @@ function registra(){
   S.historial.push({f:hoyISO(),b:it.b,o:it.tipo==='nombrar'?it.w:etiqueta(it),r,n:S.nivel});
   if(S.historial.length>3000)S.historial=S.historial.slice(-3000);guarda();
 }
-const NOMBRE_BLOQUE={den:'Nombrar (Denominación)',sem:'Relacionar (Semántica)',sin:'Hacer frases (Sintaxis)',otr:'Atención y más (Otras capacidades)'};
+const NOMBRE_BLOQUE={des:'Mis deseos',den:'Nombrar (Denominación)',sem:'Relacionar (Semántica)',sin:'Hacer frases (Sintaxis)',otr:'Atención y más (Otras capacidades)'};
 function fechaCorta(iso){return new Date(iso+(iso.length===10?'T12:00':'')).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}
 function resumen(dias){
   const desde=new Date();desde.setDate(desde.getDate()-(dias-1));const dIso=desde.toISOString().slice(0,10);
@@ -1361,7 +1411,7 @@ function resumen(dias){
   const cuenta=l=>({n:l.length,bien:l.filter(x=>x.r==='bien').length,pista:l.filter(x=>x.r==='pista').length,juntos:l.filter(x=>x.r==='juntos').length});
   const pc=(a,b)=>b?Math.round(a/b*100)+' %':'—';
   const tot=cuenta(h);
-  const porBloque=['den','sem','sin','otr'].map(b=>({b,c:cuenta(h.filter(x=>x.b===b))})).filter(x=>x.c.n);
+  const porBloque=['des','den','sem','sin','otr'].map(b=>({b,c:cuenta(h.filter(x=>x.b===b))})).filter(x=>x.c.n);
   const porObj={};h.forEach(x=>{(porObj[x.o]=porObj[x.o]||[]).push(x.r)});
   const cuestan=Object.entries(porObj).map(([o,rs])=>({o,ay:rs.filter(r=>r!=='bien').length,n:rs.length})).filter(x=>x.ay).sort((a,b)=>b.ay-a.ay||b.n-a.n).slice(0,8);
   const salen=Object.entries(porObj).filter(([o,rs])=>rs.every(r=>r==='bien')).map(([o])=>o).slice(0,15);
@@ -1482,6 +1532,7 @@ app.addEventListener('click',e=>{
   if(a==='pro')return capaPro();
   if(a==='editar-deseos')return abreFamilia('deseos');
   if(a==='bloque'){const bl=BLOQUES.find(x=>x.id===b.dataset.b);if(bl.listo){nuevaSesion(bl.id);return transicion('durazno',()=>{vista='ejercicio';render();lee()})}return capaPronto(bl)}
+  if(a==='practicar-deseo'){const d=deseo(b.dataset.d);if(!d||!d.palabras.length)return;sesionDeseo(d);return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
   if(a==='practicar'){nuevaSesion();return transicion('durazno',()=>{vista='ejercicio';render();lee()})}
   if(a==='minido')return ir('nido','durazno');
   if(a==='volver'||a==='terminar')return ir('inicio');
@@ -1491,6 +1542,7 @@ app.addEventListener('click',e=>{
   if(a==='oir')return lee();
   if(a==='oirpal')return di(it.w,true);
   if(a==='oirpista')return di('Empieza por '+(it.s.length>1?it.s[0]:it.w.slice(0,1)),true);
+  if(a==='oirsil')return leeSilabas(true);
   if(a==='oirlento')return di(it.sil||it.t,true,.62);
   if(a==='gelige'){const k=+b.dataset.i;if(k===it.ok)return acierto();ses.descartes.push(k);return casiGen()}
   if(a==='ficha'){const k=+b.dataset.k;ses.colocadas.push(ses.fichas.find(x=>x.k===k));render();return di(it.seq[k],true)}
