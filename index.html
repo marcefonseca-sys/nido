@@ -448,6 +448,7 @@ function puntua(v){
 function cargaVoces(){try{vocesES=speechSynthesis.getVoices().filter(v=>puntua(v)>=0).sort((a,b)=>puntua(b)-puntua(a))}catch(e){vocesES=[]}}
 try{cargaVoces();speechSynthesis.onvoiceschanged=cargaVoces}catch(e){}
 function vozElegida(){return vocesES.find(v=>v.name===S.vozNombre)||vocesES[0]||null}
+const vivas=new Set();
 function di(t,forzar,vel){
   if(!S.voz&&!forzar)return;
   calla();const mio=turno;
@@ -456,9 +457,13 @@ function di(t,forzar,vel){
   let k=0;
   const sigue=()=>{
     if(mio!==turno||k>=partes.length){if(b)b.classList.remove('sonando');return}
-    try{const u=new SpeechSynthesisUtterance(partes[k++]);const v=vozElegida();
+    try{const txt=partes[k++];const u=new SpeechSynthesisUtterance(txt);const v=vozElegida();
       u.lang=v?v.lang:'es-ES';if(v)u.voice=v;u.rate=vel||VELOCIDADES[S.velocidad]||.84;u.pitch=1;
-      u.onend=()=>setTimeout(sigue,320);u.onerror=()=>setTimeout(sigue,0);speechSynthesis.speak(u)}catch(e){}
+      /* se guarda la frase hasta que acaba (Safari y Chrome a veces la pierden y no avisan del final)
+         y un respaldo sigue con la siguiente si el aviso no llega */
+      let hecho=false;const fin=(pausa)=>{if(hecho)return;hecho=true;clearTimeout(resp);vivas.delete(u);setTimeout(sigue,pausa)};
+      const resp=setTimeout(()=>{if(!speechSynthesis.speaking)fin(0);else setTimeout(()=>fin(0),1500)},txt.length*110/(u.rate||1)+2500);
+      vivas.add(u);u.onend=()=>fin(320);u.onerror=()=>fin(0);speechSynthesis.speak(u)}catch(e){}
   };
   setTimeout(sigue,80);
 }
@@ -643,7 +648,7 @@ function pPruebaIntro(){
     <h1 class="titulo saludo" style="font-size:clamp(34px,5vw,48px)">Vamos a conocernos, ${esc(S.nombre)}</h1>
     <p class="lema" style="max-width:34ch">Son 8 ejercicios cortos para que Lino sepa por dónde empezar. Sin prisa: no pasa nada si alguno no sale.</p>
     <div class="fila"><button class="boton secundario" data-a="prueba-luego">Ahora no</button><button class="boton primario grande" data-a="prueba-empieza">Empezar ${I.sigue}</button></div>
-  </div></section>`,()=>di(`Vamos a conocernos, ${S.nombre}. Son ocho ejercicios cortos para que Lino sepa por dónde empezar. Sin prisa.`));
+  </div></section>`,()=>di(`Vamos a conocernos, ${S.nombre}. Son ocho ejercicios cortos para que Lino sepa por dónde empezar. Sin prisa: no pasa nada si alguno no sale.`));
 }
 function pPruebaFin(){
   pinta(`<section class="pantalla"><div class="centro">
@@ -651,7 +656,7 @@ function pPruebaFin(){
     <h1 class="titulo saludo" style="font-size:clamp(34px,5vw,50px)">Gracias, ${esc(S.nombre)}</h1>
     <p class="lema" style="max-width:34ch">Ya sé por dónde empezar. Cada palabra que vuelva será un hilo de tu nido.</p>
     <button class="boton primario grande" data-a="terminar">Ir a mi nido ${I.sigue}</button>
-  </div></section>`,()=>di(`Gracias, ${S.nombre}. Ya sé por dónde empezar.`));
+  </div></section>`,()=>di(`Gracias, ${S.nombre}. Ya sé por dónde empezar. Cada palabra que vuelva será un hilo de tu nido.`));
 }
 limpiaFotos();
 /* ---- sesión ---- */
@@ -761,7 +766,10 @@ function lee(){
   else if(f==='juntos')di(ses.msg.voz);
   else if(f==='bien')di(ses.msg.voz);
 }
+const enFrase=x=>{x=String(x).replace(/<[^>]+>/g,'').replace(/[«»]/g,'').replace(/&amp;/g,'&').trim();return x&&!/[.?!…:]$/.test(x)?x+'.':x};
 function fase(f,msg,mancha){
+  /* Lino lee exactamente lo que pone en pantalla: título y frase del mensaje */
+  if(msg&&msg.a)msg.voz=[msg.a,msg.b].filter(Boolean).map(enFrase).join(' ');
   ses.fase=f;ses.msg=msg||null;
   const go=()=>{render();lee()};
   mancha?transicion(mancha,go):go();
@@ -783,7 +791,7 @@ function acierto(){
 }
 function juntos(){
   ses.res[ses.i]='ayuda';
-  fase('juntos',{t:'juntos',a:`Es «${ses.it.w}»`,b:'Vamos a decirlo juntos. La próxima vez saldrá.',voz:`Es ${ses.it.w}. Vamos a decirlo juntos: ${ses.it.w}.`});
+  fase('juntos',{t:'juntos',a:`Es «${ses.it.w}»`,b:`Vamos a decirlo juntos: «${ses.it.w}». La próxima vez saldrá.`});
 }
 
 /* ---- bloques Relacionar, Hacer frases y Atención y más ---- */
@@ -877,7 +885,7 @@ function capaMeta(it,cb){
     <p class="titulo" style="font-size:30px">Lino lleva «${it.w}» a tu deseo</p>
     <p style="font-size:22px">${d.nombre}: ${hilosDeseo(it.d)} de ${d.palabras.length} palabras ya vuelven</p>
     <button class="boton primario" data-cerrar>Seguir ${I.sigue}</button>`;
-  app.appendChild(capa);di(`Lino lleva ${it.w} a tu deseo: ${d.nombre}.`);
+  app.appendChild(capa);di(`Lino lleva ${it.w} a tu deseo. ${d.nombre}: ${hilosDeseo(it.d)} de ${d.palabras.length} palabras ya vuelven.`);
   capa.querySelector('[data-cerrar]').addEventListener('click',()=>{capa.remove();cb()});
   capa.querySelector('[data-cerrar]').focus();
 }
@@ -898,7 +906,7 @@ function pFinal(){
     <div class="tarjeta-nido" style="padding:24px">
       <div class="nido-caja"><img class="ilus" src="${M.nido}" alt=""><canvas data-nido data-nuevos="${n}" aria-label="Tu nido, con ${S.hilos.length} hilos"></canvas></div>
       <p><b style="font-size:30px">${S.hilos.length}</b> hilos · ${etapa(S.hilos.length)}</p>
-    </div></div></section>`,()=>{montaNidos();di(`Muy bien, ${S.nombre}. ${n?`Hoy has tejido ${n} hilos en tu nido.`:''}${cumpl.length?' Has cumplido un deseo: '+cumpl.join(' y ')+'.':''}`)});
+    </div></div></section>`,()=>{montaNidos();di(`Muy bien, ${S.nombre}. ${n?`Hoy has tejido ${n} ${n===1?'hilo':'hilos'} en tu nido.`:'Hoy has practicado. Mañana, otro poco.'}${cumpl.length?' Deseo cumplido. '+cumpl.join(' y ')+(cumpl.length>1?' ya están tejidos':' ya está tejido')+' en tu nido.':''} Esta semana has practicado ${nd} ${nd===1?'día':'días'}.`)});
 }
 
 function pNido(){
@@ -931,7 +939,7 @@ function capaPronto(bl){
     <p class="titulo" style="font-size:30px">${bl.nombre}, muy pronto</p>
     <p>Lino está preparando este rincón. Hoy puedes practicar <b>Nombrar</b>.</p>
     <div class="fila"><button class="boton secundario" data-cerrar>Volver</button><button class="boton primario" data-ir>Practicar Nombrar ${I.sigue}</button></div></div>`;
-  app.appendChild(capa);di(`${bl.nombre}, muy pronto. Hoy puedes practicar nombrar.`);
+  app.appendChild(capa);di(`${bl.nombre}, muy pronto. Lino está preparando este rincón. Hoy puedes practicar nombrar.`);
   capa.querySelector('[data-cerrar]').addEventListener('click',()=>{calla();capa.remove()});
   capa.querySelector('[data-ir]').addEventListener('click',()=>{capa.remove();nuevaSesion();transicion('durazno',()=>{vista='ejercicio';render();lee()})});
   capa.querySelector('[data-ir]').focus();
@@ -1400,7 +1408,7 @@ app.addEventListener('click',e=>{
   if(a==='elige'){
     const w=b.dataset.w;
     if(w===it.w)return acierto();
-    if(nv()===1){ses.ayuda=true;return fase('juntos',{t:'juntos',a:`Es «${it.w}»`,b:'Vamos a decirlo juntos.',voz:`Es ${it.w}. Vamos a decirlo juntos: ${it.w}.`},'salvia')}
+    if(nv()===1){ses.ayuda=true;return fase('juntos',{t:'juntos',a:`Es «${it.w}»`,b:`Vamos a decirlo juntos: «${it.w}».`},'salvia')}
     ses.descartes.push(w);ses.ayuda=true;
     if(!ses.msg||ses.msg.t!=='casi')return fase('opciones',{t:'casi',a:'Casi',b:'Prueba con otra.',voz:'Casi. Prueba con otra.'},'salvia');
     return juntos();
