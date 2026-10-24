@@ -195,6 +195,28 @@ h1,h2,p{margin:0}
 .opcion .repite{font-size:28px;padding:0}
 .fotocasa.mini{position:static;width:min(160px,100%);height:auto;aspect-ratio:1;border-radius:16px}
 @media (max-width:560px){.lista-deseos li,.lista-palabras li{grid-template-columns:56px minmax(0,1fr)}}
+.capa-caja.ancha{max-width:760px}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cifras div{background:var(--lino);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column}
+.cifras b{font-size:30px;font-variant-numeric:tabular-nums;line-height:1.1}
+.cifras span{font-size:15px;color:var(--tinta-suave)}
+.tabla-bloques{display:flex;flex-direction:column;gap:10px}
+.tb-fila{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 3ch;gap:12px;align-items:center;font-size:17px}
+.tb-barra{display:flex;height:14px;border-radius:999px;background:var(--arena);overflow:hidden}
+.tb-barra i{display:block;height:100%;background:var(--salvia-viva)}
+.tb-barra i.p{background:var(--dorado)}
+.tb-n{text-align:right;font-variant-numeric:tabular-nums;color:var(--tinta-suave)}
+.leyenda-c{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--salvia-viva);vertical-align:-2px;margin:0 4px 0 10px}
+.leyenda-c.p{background:var(--dorado)}.leyenda-c.j{background:var(--arena)}
+.previa summary{cursor:pointer;font-weight:700;font-size:17px}
+.previa pre{white-space:pre-wrap;font-family:var(--f-texto);font-size:15px;background:var(--lino);padding:12px;border-radius:12px;max-height:240px;overflow:auto}
+.capa-caja hr{border:0;border-top:2px solid var(--linea);margin:4px 0;width:100%}
+.voz-pal{display:flex;flex-direction:column;gap:6px}
+.voz-pal b{font-size:20px}
+.voz-pal ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.voz-pal li{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.voz-pal audio{height:40px;max-width:100%}
+@media (max-width:560px){.cifras{grid-template-columns:repeat(2,minmax(0,1fr))}.tb-fila{grid-template-columns:1fr 3ch}.tb-fila .tb-barra{grid-column:1/-1;grid-row:2}}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -762,6 +784,7 @@ function casiGen(){
   fase(ses.fase==='confirma'||ses.fase==='escucha'?'pista1':'pregunta',{t:'casi',a:'Casi',b:it.p||'Prueba otra vez.',voz:'Casi. '+(it.p||'Prueba otra vez.')},'salvia');
 }
 function siguiente(){
+  if(!ses.reg)ses.reg={};if(!ses.reg[ses.i]){ses.reg[ses.i]=true;registra()}
   if(ses.paraMeta&&!ses.deseoVisto){ses.deseoVisto=true;return capaMeta(ses.paraMeta,siguiente)}
   ses.paraMeta=null;
   if(ses.res[ses.i]===undefined)ses.res[ses.i]='ayuda';
@@ -842,6 +865,7 @@ function capaPronto(bl){
 }
 function capaFamilia(tab){
   if(tab==='deseos')return capaDeseos();
+  if(tab==='progreso')return capaProgreso();
   const capa=document.createElement('div');capa.className='capa';
   capa.innerHTML=`<form class="capa-caja" id="ff">
     <span class="etiqueta">Espacio de la familia</span>
@@ -850,6 +874,7 @@ function capaFamilia(tab){
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
     <fieldset class="campo"><legend>Nivel</legend>${[1,2,3].map(n=>`<label class="radio"><input type="radio" name="nivel" id="f-nivel-${n}" value="${n}" ${S.nivel===n?'checked':''}><span><b>${NIVELES[n]}</b><br><span class="ayuda" style="font-size:16px">${NIVEL_DET[n]}</span></span></label>`).join('')}</fieldset>
     <label class="radio"><input type="checkbox" id="f-voz" ${S.voz?'checked':''}> Lino lee en voz alta</label>
+    <label class="radio"><input type="checkbox" id="f-grabar" ${S.grabar!==false?'checked':''}> <span>Guardar grabaciones de su voz<br><span class="ayuda" style="font-size:16px">Se quedan solo en esta tablet, para escucharlas en Progreso.</span></span></label>
     <div class="campo"><label for="f-voz-nombre">Voz</label>
       ${vocesES.length?`<select id="f-voz-nombre" style="min-height:56px;border-radius:14px;border:2px solid var(--borde);padding:0 12px;font:inherit;background:var(--lino)">${vocesES.map(v=>`<option value="${esc(v.name)}" ${vozElegida()&&vozElegida().name===v.name?'selected':''}>${esc(v.name)} · ${esc(v.lang)}</option>`).join('')}</select>`:'<p class="ayuda">Este dispositivo no tiene voces en español instaladas.</p>'}
     </div>
@@ -866,13 +891,13 @@ function capaFamilia(tab){
   });
   capa.querySelector('#ff').addEventListener('submit',e=>{e.preventDefault();
     const nom=capa.querySelector('#f-nombre').value.trim();if(nom)S.nombre=nom;
-    S.nivel=+capa.querySelector('input[name=nivel]:checked').value;S.voz=capa.querySelector('#f-voz').checked;leeVoz();guarda();capa.remove();render();});
+    S.nivel=+capa.querySelector('input[name=nivel]:checked').value;S.voz=capa.querySelector('#f-voz').checked;S.grabar=capa.querySelector('#f-grabar').checked;leeVoz();guarda();capa.remove();render();});
   function leeVoz(){const sel=capa.querySelector('#f-voz-nombre');if(sel)S.vozNombre=sel.value;const r=capa.querySelector('input[name=velocidad]:checked');if(r)S.velocidad=r.value}
   capa.querySelector('#f-probar').addEventListener('click',()=>{leeVoz();const nom=capa.querySelector('#f-nombre').value.trim()||S.nombre;di(`Hola, ${nom}. Soy Lino. Vamos a tejer el nido, palabra a palabra.`,true)});
   capa.querySelector('#f-nombre').focus();
   conectaPestanas(capa);
 }
-function pestanas(act){return`<div class="pestanas" role="tablist">${[['ajustes','Ajustes'],['deseos','Deseos']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-tab="${k}">${l}</button>`).join('')}</div>`}
+function pestanas(act){return`<div class="pestanas" role="tablist">${[['ajustes','Ajustes'],['deseos','Deseos'],['progreso','Progreso']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-tab="${k}">${l}</button>`).join('')}</div>`}
 function conectaPestanas(capa){capa.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();capaFamilia(b.dataset.tab)}))}
 
 /* ---- Deseos: lista y editor ---- */
@@ -980,26 +1005,138 @@ function noTeOigo(){
   ses.fase=ses.prev;ses.msg={t:'juntos',a:'No te he oído',b:'Toca el micrófono y habla cuando quieras.',voz:'No te he oído. Toca el micrófono y habla cuando quieras.'};
   render();di(ses.msg.voz);
 }
-function escuchaDeVerdad(){
+function escuchaDeVerdad(conGrab){
+  if(conGrab===undefined)conGrab=S.grabar!==false&&!grabarFalla&&!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
   const it=ses.it,objetivo=it.tipo==='repite'?it.t:it.w,mio=ses;
-  let alts=[],termino=false;
+  let alts=[],termino=false;const grab=conGrab?empiezaGrabacion():null;
   try{
     rec=new SR();rec.lang='es-ES';rec.interimResults=false;rec.maxAlternatives=5;rec.continuous=false;
     rec.onresult=e=>{for(let i=0;i<e.results.length;i++)for(let k=0;k<e.results[i].length;k++)alts.push(e.results[i][k].transcript)};
     rec.onerror=e=>{
-      if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'||e.error==='language-not-supported'){vozReal=false;termino=true;rec=null;clearTimeout(escuchaT);if(ses===mio&&ses.fase==='escucha')fase('confirma')}
+      if(e.error==='audio-capture'&&grab){grabarFalla=true;grab.cancela();termino=true;rec=null;clearTimeout(escuchaT);if(ses===mio&&ses.fase==='escucha')escuchaDeVerdad(false);return}
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'||e.error==='language-not-supported'){if(grab)grab.cancela();vozReal=false;termino=true;rec=null;clearTimeout(escuchaT);if(ses===mio&&ses.fase==='escucha')fase('confirma')}
     };
     rec.onend=()=>{
-      clearTimeout(escuchaT);const r=rec;rec=null;
-      if(termino||ses!==mio||ses.fase!=='escucha')return;
+      clearTimeout(escuchaT);rec=null;
+      if(termino){return}
+      const sale=alts.length?coincide(alts,objetivo):null;
+      if(grab)grab.para().then(blob=>{if(blob&&alts.length)guardaGrabacion({palabra:objetivo,b:it.b,ok:sale,oido:alts[0]},blob)});
+      if(ses!==mio||ses.fase!=='escucha')return;
       if(!alts.length)return noTeOigo();
       vozReal=true;
-      if(coincide(alts,objetivo))return acierto();
+      if(sale)return acierto();
       noSale();
     };
     rec.start();
     escuchaT=setTimeout(()=>{if(rec){try{rec.stop()}catch(e){}}},9000);
-  }catch(e){vozReal=false;rec=null;fase('confirma')}
+  }catch(e){if(grab)grab.cancela();vozReal=false;rec=null;fase('confirma')}
+}
+
+/* ---------- grabaciones de su voz (solo en este dispositivo) ---------- */
+let grabarFalla=false;
+function empiezaGrabacion(){
+  let mr=null,stream=null,trozos=[],cancelada=false;
+  const fin=()=>{if(stream)stream.getTracks().forEach(t=>t.stop())};
+  const listo=navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{stream=st;if(cancelada)return fin();
+    const tipo=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t));
+    mr=new MediaRecorder(st,tipo?{mimeType:tipo}:undefined);mr.ondataavailable=e=>{if(e.data&&e.data.size)trozos.push(e.data)};mr.start()}).catch(()=>{grabarFalla=true});
+  return{
+    para(){return listo.then(()=>new Promise(ok=>{if(!mr||mr.state==='inactive'){fin();return ok(null)}
+      mr.onstop=()=>{fin();ok(trozos.length?new Blob(trozos,{type:mr.mimeType||'audio/mp4'}):null)};try{mr.stop()}catch(e){fin();ok(null)}}))},
+    cancela(){cancelada=true;listo.then(()=>{try{if(mr&&mr.state!=='inactive')mr.stop()}catch(e){}fin()})}
+  };
+}
+function abreDB(){return new Promise((ok,mal)=>{try{const r=indexedDB.open('nido-voz',1);r.onupgradeneeded=()=>r.result.createObjectStore('grabaciones',{keyPath:'id'});r.onsuccess=()=>ok(r.result);r.onerror=()=>mal(r.error)}catch(e){mal(e)}})}
+function guardaGrabacion(meta,blob){
+  return abreDB().then(db=>new Promise(ok=>{const tx=db.transaction('grabaciones','readwrite');
+    tx.objectStore('grabaciones').put(Object.assign({id:Date.now(),fecha:new Date().toISOString(),blob},meta));tx.oncomplete=ok;tx.onerror=ok})).catch(()=>{});
+}
+function listaGrabaciones(){return abreDB().then(db=>new Promise(ok=>{const r=db.transaction('grabaciones').objectStore('grabaciones').getAll();r.onsuccess=()=>ok(r.result||[]);r.onerror=()=>ok([])})).catch(()=>[])}
+function borraGrabaciones(){return abreDB().then(db=>new Promise(ok=>{const tx=db.transaction('grabaciones','readwrite');tx.objectStore('grabaciones').clear();tx.oncomplete=ok;tx.onerror=ok})).catch(()=>{})}
+
+/* ---------- historial y resumen para la logopeda ---------- */
+function registra(){
+  const it=ses.it;if(!S.historial)S.historial=[];
+  const r=ses.fase==='juntos'?'juntos':ses.res[ses.i]==='bien'?'bien':'pista';
+  S.historial.push({f:hoyISO(),b:it.b,o:it.tipo==='nombrar'?it.w:etiqueta(it),r,n:S.nivel});
+  if(S.historial.length>3000)S.historial=S.historial.slice(-3000);guarda();
+}
+const NOMBRE_BLOQUE={den:'Nombrar (Denominación)',sem:'Relacionar (Semántica)',sin:'Hacer frases (Sintaxis)',otr:'Atención y más (Otras capacidades)'};
+function fechaCorta(iso){return new Date(iso+(iso.length===10?'T12:00':'')).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}
+function resumen(dias){
+  const desde=new Date();desde.setDate(desde.getDate()-(dias-1));const dIso=desde.toISOString().slice(0,10);
+  const h=(S.historial||[]).filter(x=>x.f>=dIso);
+  const diasP=new Set(h.map(x=>x.f)).size;
+  const cuenta=l=>({n:l.length,bien:l.filter(x=>x.r==='bien').length,pista:l.filter(x=>x.r==='pista').length,juntos:l.filter(x=>x.r==='juntos').length});
+  const pc=(a,b)=>b?Math.round(a/b*100)+' %':'—';
+  const tot=cuenta(h);
+  const porBloque=['den','sem','sin','otr'].map(b=>({b,c:cuenta(h.filter(x=>x.b===b))})).filter(x=>x.c.n);
+  const porObj={};h.forEach(x=>{(porObj[x.o]=porObj[x.o]||[]).push(x.r)});
+  const cuestan=Object.entries(porObj).map(([o,rs])=>({o,ay:rs.filter(r=>r!=='bien').length,n:rs.length})).filter(x=>x.ay).sort((a,b)=>b.ay-a.ay||b.n-a.n).slice(0,8);
+  const salen=Object.entries(porObj).filter(([o,rs])=>rs.every(r=>r==='bien')).map(([o])=>o).slice(0,15);
+  const L=[];
+  L.push(`Resumen de Nido · ${S.nombre}`);
+  L.push(`${fechaCorta(dIso)} – ${fechaCorta(hoyISO())} (últimos ${dias} días) · Nivel: ${NIVELES[S.nivel]}`);
+  L.push('');
+  if(!h.length){L.push('Todavía no hay ejercicios en este periodo.');return{texto:L.join('\n'),tot,diasP,porBloque,cuestan,salen}}
+  L.push(`Días de práctica: ${diasP} de ${dias}`);
+  L.push(`${tot.n===1?'Ejercicio':'Ejercicios'}: ${tot.n} · a la primera ${tot.bien} (${pc(tot.bien,tot.n)}) · con pista ${tot.pista} · con ayuda completa ${tot.juntos}`);
+  L.push('');L.push('Por bloque:');
+  porBloque.forEach(x=>L.push(`· ${NOMBRE_BLOQUE[x.b]}: ${x.c.n} ${x.c.n===1?'ejercicio':'ejercicios'} · ${pc(x.c.bien,x.c.n)} a la primera · ${x.c.pista} con pista · ${x.c.juntos} con ayuda completa`));
+  if(cuestan.length){L.push('');L.push('Lo que más cuesta (necesitó ayuda):');cuestan.forEach(x=>L.push(`· ${x.o} (${x.ay} de ${x.n} ${x.n===1?'vez':'veces'})`))}
+  if(salen.length){L.push('');L.push('Sale sin ayuda: '+salen.join(', '))}
+  if(S.deseos.length){L.push('');L.push('Deseos:');S.deseos.forEach(d=>L.push(`· ${d.nombre}: ${hilosDeseo(d)} de ${d.palabras.length} palabras${d.palabras.length&&hilosDeseo(d)===d.palabras.length?' · cumplido':''}`))}
+  return{texto:L.join('\n'),tot,diasP,porBloque,cuestan,salen};
+}
+function capaProgreso(){
+  const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
+  let dias=7,armado=false,urls=[];
+  const limpia=()=>{urls.forEach(u=>URL.revokeObjectURL(u));urls=[]};
+  const pinta=async()=>{
+    const R=resumen(dias);const gr=(await listaGrabaciones()).sort((a,b)=>b.id-a.id);
+    limpia();
+    const porPal={};gr.forEach(g=>{(porPal[g.palabra]=porPal[g.palabra]||[]).push(g)});
+    const pc=(a,b)=>b?Math.round(a/b*100):0;
+    capa.innerHTML=`<div class="capa-caja ancha">
+      <span class="etiqueta">Espacio de la familia</span>${pestanas('progreso')}
+      <div class="barra"><p class="titulo" style="font-size:30px">Progreso</p>
+        <div class="pestanas" role="group" aria-label="Periodo">${[[7,'7 días'],[30,'30 días']].map(([d,l])=>`<button type="button" class="pestana ${dias===d?'activa':''}" data-dias="${d}" aria-pressed="${dias===d}">${l}</button>`).join('')}</div></div>
+      ${R.tot.n?`<div class="cifras">
+        <div><b>${R.diasP}</b><span>días de práctica</span></div>
+        <div><b>${R.tot.n}</b><span>ejercicios</span></div>
+        <div><b>${pc(R.tot.bien,R.tot.n)} %</b><span>a la primera</span></div>
+        <div><b>${R.tot.pista+R.tot.juntos}</b><span>con ayuda</span></div></div>
+      <div class="tabla-bloques">${R.porBloque.map(x=>`<div class="tb-fila"><span>${NOMBRE_BLOQUE[x.b]}</span>
+        <span class="tb-barra" role="img" aria-label="${pc(x.c.bien,x.c.n)} % a la primera"><i style="width:${pc(x.c.bien,x.c.n)}%"></i><i class="p" style="width:${pc(x.c.pista,x.c.n)}%"></i></span>
+        <span class="tb-n">${x.c.n}</span></div>`).join('')}
+        <p class="ayuda" style="font-size:15px"><i class="leyenda-c"></i> a la primera <i class="leyenda-c p"></i> con pista <i class="leyenda-c j"></i> con ayuda completa</p></div>
+      ${R.cuestan.length?`<p><b>Lo que más cuesta:</b> ${R.cuestan.map(x=>esc(x.o)).join(', ')}</p>`:''}`
+      :'<p class="ayuda">Todavía no hay ejercicios en este periodo en esta tablet. Cuando practique, aquí aparecerá el resumen.</p>'}
+      <div class="fila" style="justify-content:flex-start"><button type="button" class="boton primario" id="pr-compartir">Compartir resumen</button><button type="button" class="boton secundario" id="pr-copiar">Copiar texto</button></div>
+      <p class="ayuda" id="pr-aviso" role="status" style="font-size:16px"></p>
+      <details class="previa"><summary>Ver el texto que se envía</summary><pre id="pr-texto">${esc(R.texto)}</pre></details>
+      <hr>
+      <p class="titulo" style="font-size:26px">Su voz</p>
+      ${S.grabar===false?'<p class="ayuda">Las grabaciones están desactivadas en Ajustes.</p>':''}
+      ${grabarFalla?'<p class="ayuda">Este dispositivo no deja grabar mientras Lino escucha. Lino sigue reconociendo la voz, pero sin guardar la grabación.</p>':''}
+      ${gr.length?Object.entries(porPal).map(([pal,l])=>`<div class="voz-pal"><b>${esc(pal)}</b><ul>${l.slice(0,6).map(g=>{const u=URL.createObjectURL(g.blob);urls.push(u);
+        return`<li><span class="ayuda" style="font-size:15px">${fechaCorta(g.fecha.slice(0,10))} · ${g.ok?'salió':'con ayuda'}</span><audio controls preload="none" src="${u}"></audio></li>`}).join('')}</ul></div>`).join('')
+      :'<p class="ayuda">Aún no hay grabaciones. Se guardan cuando responde hablando con el micrófono verde, desde la dirección web de la app.</p>'}
+      <div class="fila" style="justify-content:space-between">${gr.length?`<button type="button" class="txt-btn" id="pr-borrar">${armado?'Toca otra vez para borrar todas':'Borrar grabaciones'}</button>`:'<span></span>'}<button type="button" class="boton secundario" data-cerrar>Cerrar</button></div>
+    </div>`;
+    conectaPestanas(capa);
+    capa.querySelectorAll('[data-dias]').forEach(b=>b.addEventListener('click',()=>{dias=+b.dataset.dias;pinta()}));
+    capa.querySelector('[data-cerrar]').addEventListener('click',()=>{limpia();capa.remove()});
+    const aviso=t=>{capa.querySelector('#pr-aviso').textContent=t};
+    const copiar=()=>navigator.clipboard.writeText(R.texto).then(()=>aviso('Resumen copiado. Pégalo en WhatsApp o en un correo.')).catch(()=>{const d=capa.querySelector('details');d.open=true;const r=document.createRange();r.selectNodeContents(capa.querySelector('#pr-texto'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);aviso('Texto seleccionado: cópialo con el menú del sistema.')});
+    capa.querySelector('#pr-copiar').addEventListener('click',copiar);
+    capa.querySelector('#pr-compartir').addEventListener('click',()=>{
+      if(navigator.share)navigator.share({title:'Resumen de Nido · '+S.nombre,text:R.texto}).then(()=>aviso('Resumen compartido.')).catch(e=>{if(e&&e.name==='AbortError')return;copiar()});
+      else copiar();
+    });
+    const bb=capa.querySelector('#pr-borrar');if(bb)bb.addEventListener('click',()=>{if(!armado){armado=true;return pinta()}armado=false;borraGrabaciones().then(pinta)});
+  };
+  pinta();
 }
 /* ---------- acciones ---------- */
 let escuchaT=null;
