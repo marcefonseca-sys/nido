@@ -247,6 +247,8 @@ a.boton.primario{color:var(--sobre-salvia)}
 .borrador{margin:0;font-size:16px;color:var(--dorado-oscuro);font-weight:700}
 .nombre-grande{width:min(420px,100%);min-height:72px;border-radius:18px;border:2px solid var(--borde);padding:0 20px;font:inherit;font-size:30px;text-align:center;background:var(--papel);color:var(--tinta)}
 .nombre-grande:focus{outline:3px solid var(--salvia-viva);outline-offset:2px}
+.envio{display:flex;flex-direction:column;gap:10px}
+.envio p{margin:0}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -990,7 +992,7 @@ function capaFamilia(tab){
   capa.innerHTML=`<form class="capa-caja" id="ff">
     <span class="etiqueta">Espacio de la familia</span>
     ${pestanas('ajustes')}
-    ${informePendiente()?`<div class="aviso-informe"><p><b>El informe semanal para ${esc(S.pro.nombre||'la profesional')} está listo.</b></p><div class="fila" style="justify-content:flex-start">${S.pro.email?`<a class="boton primario chico" id="inf-mail" href="${mailtoInforme()}">Enviar por correo</a>`:''}<button type="button" class="boton secundario chico" id="inf-share">${S.pro.email?'Otra forma':'Enviar'}</button></div></div>`:''}
+    ${informePendiente()?`<div class="aviso-informe"><p><b>El informe semanal para ${esc(S.pro.nombre||'la profesional')} está listo.</b></p>${bloqueEnvio()}</div>`:''}
     ${avisoFotos().map(d=>`<div class="aviso-prueba"><p><b>Las fotos de «${esc(d.nombre)}» se borrarán el ${fechaCorta(fechaBorrado(d))}.</b> El deseo ya está cumplido; su rincón se queda en Mi nido.</p></div>`).join('')}
     <p class="titulo" style="font-size:30px">Ajustes</p>
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
@@ -1021,8 +1023,7 @@ function capaFamilia(tab){
   capa.querySelector('#f-nombre').focus();
   conectaPestanas(capa);
   capa.querySelector('#f-prueba').addEventListener('click',()=>{capa.remove();empiezaPrueba();transicion('durazno',()=>{vista='ejercicio';render();lee()})});
-  const im=capa.querySelector('#inf-mail');if(im)im.addEventListener('click',()=>{marcaInforme();setTimeout(()=>{capa.remove();capaFamilia()},400)});
-  const is=capa.querySelector('#inf-share');if(is)is.addEventListener('click',()=>enviaInforme().then(ok=>{if(ok){capa.remove();capaFamilia()}}));
+  conectaEnvio(capa,()=>{capa.remove();capaFamilia()});
 }
 function pestanas(act){return`<div class="pestanas" role="tablist">${[['ajustes','Ajustes'],['deseos','Deseos']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-tab="${k}">${l}</button>`).join('')}</div>`}
 function conectaPestanas(capa){capa.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();capaFamilia(b.dataset.tab)}))}
@@ -1232,6 +1233,30 @@ function informePendiente(){
 function textoInforme(){return resumen(7).texto+'\n\nEnviado desde Nido.'}
 function mailtoInforme(){const c=proCfg();return'mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent('Informe semanal de Nido · Paciente '+S.nombre)+'&body='+encodeURIComponent((c.nombre?'Hola, '+c.nombre+':\n\n':'')+textoInforme())}
 function marcaInforme(){proCfg().ultimo=hoyISO();guarda()}
+/* Envío del informe: Nido no envía correos (no hay servidor). Prepara el correo, lo comparte o lo copia,
+   y solo lo da por enviado cuando la persona lo confirma. */
+let envioMsg=null;
+function bloqueEnvio(){
+  const c=proCfg();
+  if(envioMsg)return`<div class="envio"><p role="status">${envioMsg}</p><p><b>¿Has enviado el informe?</b></p>
+    <div class="fila" style="justify-content:flex-start"><button type="button" class="boton primario chico" data-env="si">Sí, ya está enviado</button><button type="button" class="boton secundario chico" data-env="no">Todavía no</button></div></div>`;
+  return`<div class="envio"><div class="fila" style="justify-content:flex-start">${c.email?`<a class="boton primario chico" data-env="mail" href="${mailtoInforme()}">Preparar el correo</a>`:''}${navigator.share?`<button type="button" class="boton secundario chico" data-env="share">Compartir</button>`:''}<button type="button" class="boton secundario chico" data-env="copiar">Copiar el informe</button></div>
+    <p class="ayuda" style="font-size:15px">${c.email?'«Preparar el correo» abre tu aplicación de correo con el informe ya escrito: revísalo y pulsa Enviar. ':'Para prepararlo por correo, la profesional debe poner su correo en su espacio. '}Si no se abre, copia el informe y pégalo en tu correo o en WhatsApp.</p></div>`;
+}
+function copiaTexto(t){
+  const viejo=()=>{try{const a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(()=>true).catch(()=>viejo());
+  return Promise.resolve(viejo());
+}
+function conectaEnvio(capa,repinta){
+  capa.querySelectorAll('[data-env]').forEach(b=>b.addEventListener('click',e=>{const k=b.dataset.env;
+    if(k==='mail')setTimeout(()=>{envioMsg='Se ha intentado abrir tu correo con el informe. Si no se ha abierto, usa «Copiar el informe».';repinta()},500);
+    if(k==='share'){navigator.share({title:'Informe semanal de Nido · Paciente '+S.nombre,text:textoInforme()}).then(()=>{envioMsg='Informe compartido.';repinta()}).catch(()=>{})}
+    if(k==='copiar')copiaTexto(textoInforme()).then(ok=>{if(ok){envioMsg='Informe copiado. Pégalo en un correo o en WhatsApp para enviarlo.';repinta()}else{b.textContent='No se ha podido copiar'}});
+    if(k==='si'){marcaInforme();envioMsg=null;repinta()}
+    if(k==='no'){envioMsg=null;repinta()}
+  }));
+}
 function enviaInforme(){
   const t=textoInforme();
   if(navigator.share)return navigator.share({title:'Informe semanal de Nido · Paciente '+S.nombre,text:t}).then(()=>{marcaInforme();return true}).catch(()=>false);
@@ -1300,10 +1325,8 @@ function capaInforme(){
       <div class="campo"><label for="fi-email">Su correo</label><input type="email" id="fi-email" value="${esc(c.email)}" placeholder="laura@centro.es" maxlength="80" autocomplete="off"></div>
       <div class="campo"><label for="fi-dia">Día del informe</label><select id="fi-dia" class="sel">${[1,2,3,4,5,6,0].map(d=>`<option value="${d}" ${c.dia===d?'selected':''}>${May(DIAS_SEM[d])}</option>`).join('')}</select></div>
       <p class="ayuda" style="font-size:16px">${c.ultimo?`Último informe enviado el ${fechaCorta(c.ultimo)}.`:'Todavía no se ha enviado ningún informe.'} Ese día, al abrir Nido, la familia verá un aviso en Familia para enviarlo con un toque.</p>
-      <div class="fila" style="justify-content:flex-start">
-        <button class="boton primario" type="submit">Guardar</button>
-        ${c.email?`<a class="boton secundario" id="fi-mail" href="${mailtoInforme()}">Enviar ahora por correo</a>`:''}
-        <button type="button" class="boton secundario" id="fi-share">${c.email?'Otra forma':'Enviar ahora'}</button></div>
+      <div class="fila" style="justify-content:flex-start"><button class="boton primario" type="submit">Guardar</button></div>
+      <div class="aviso-informe"><p><b>Enviar ahora</b></p>${bloqueEnvio()}</div>
       ${aviso?`<p class="ayuda" role="status">${aviso}</p>`:''}
       <p class="nota" style="max-width:none">En esta simulación los datos se quedan en la tablet y el envío lo hace la familia con un toque. Que la profesional entre a distancia y reciba el informe sola necesita un servidor seguro con el consentimiento del paciente; eso le tocaría a la app de la Asociación.</p>
       <div class="fila" style="justify-content:space-between"><span class="fila"><button type="button" class="txt-btn" id="fi-pin">Cambiar el PIN</button>${S.famPin?`<button type="button" class="txt-btn" id="fi-famreset">${armadoFam?'Toca otra vez para restablecerlo':'Restablecer el PIN de la familia'}</button>`:''}</span><button type="button" class="boton secundario" id="fi-salir">Cerrar y bloquear</button></div>
@@ -1314,8 +1337,7 @@ function capaInforme(){
     q('#fi').addEventListener('submit',e=>{e.preventDefault();recoge();
       if(c.email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)){aviso='Ese correo no parece completo. Revísalo.';return pinta()}
       guarda();aviso='Guardado.';pinta()});
-    const m=q('#fi-mail');if(m)m.addEventListener('click',()=>{marcaInforme();setTimeout(()=>{aviso='Se ha abierto el correo con el informe.';pinta()},300)});
-    q('#fi-share').addEventListener('click',()=>{recoge();guarda();enviaInforme().then(ok=>{aviso=ok?'Informe preparado para enviar.':'No se ha podido abrir el menú de compartir.';pinta()})});
+    conectaEnvio(capa,()=>{recoge();pinta()});
     const fr=q('#fi-famreset');if(fr)fr.addEventListener('click',()=>{if(!armadoFam){armadoFam=true;return pinta()}armadoFam=false;S.famPin=null;guarda();aviso='PIN de la familia restablecido. La próxima vez que entren, crearán uno nuevo.';pinta()});
     q('#fi-pin').addEventListener('click',()=>{c.pin=null;guarda();proAbierto=false;capa.remove();capaPro()});
     q('#fi-salir').addEventListener('click',()=>{proAbierto=false;capa.remove();render()});
