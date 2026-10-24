@@ -822,8 +822,11 @@ function acierto(){
   const t=['Eso es','Así se dice','Muy bien'][aciertosNombre%3];
   const a=conNombre?`${t}, ${esc(S.nombre)}`:t;
   ses.paraMeta=nueva?it:null;
-  if(it.tipo!=='nombrar'){const fr=it.tipo==='repite'?'Un hilo más para tu nido.':it.x;
-    return fase('bien',{t:'bien',a,b:fr+(it.tipo==='repite'?'':' Un hilo más para tu nido.'),voz:`${conNombre?t+', '+S.nombre:t}. ${fr}`})}
+  /* «Un hilo más para tu nido» solo cada 3 aciertos, en un turno distinto al del nombre, para que no canse */
+  const conHilo=aciertosNombre%3===0;
+  if(it.tipo!=='nombrar'){
+    const fr=it.tipo==='repite'?(conHilo?'Un hilo más para tu nido.':'Se te ha entendido muy bien.'):it.x+(conHilo?' Un hilo más para tu nido.':'');
+    return fase('bien',{t:'bien',a,b:fr})}
   fase('bien',{t:'bien',a,b:`«${May(it.w)}» ya vuelve al nido.`,voz:`${conNombre?t+', '+S.nombre:t}. ${May(it.w)} ya vuelve al nido.`});
 }
 function juntos(){
