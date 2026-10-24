@@ -233,6 +233,8 @@ a.boton.primario{color:var(--sobre-salvia)}
 .boton[disabled]{opacity:.45;cursor:not-allowed}
 .pie{margin-top:auto;padding-top:16px;border-top:1px solid var(--linea,#e6dfd4);display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;justify-content:space-between;font-size:15px;color:var(--tinta-suave)}
 .pie p{margin:0}
+.pie-web{color:inherit;text-underline-offset:4px}
+.legal-txt a{color:var(--salvia-viva-oscura);font-weight:700}
 .pie nav{display:flex;flex-wrap:wrap;align-items:center;gap:0 4px}
 .pie-enlace{background:none;border:0;min-height:44px;padding:0 6px;font:inherit;font-size:15px;color:var(--tinta);text-decoration:underline;text-underline-offset:4px;cursor:pointer}
 .pie-enlace:hover{color:var(--salvia-viva-oscura)}
@@ -1384,11 +1386,11 @@ function capaProgreso(){
 /* ---------- pie e información legal ----------
    Textos en borrador: la Asociación debe revisarlos y completar sus datos antes de publicar. */
 const LEGAL=[['aviso','Aviso legal'],['privacidad','Privacidad'],['accesibilidad','Accesibilidad'],['contacto','Contacto']];
-function pie(){return`<footer class="pie"><p>© ${new Date().getFullYear()} Asociación Ayuda Afasia. Todos los derechos reservados.</p>
+function pie(){return`<footer class="pie"><p>© ${new Date().getFullYear()} <a class="pie-web" href="https://afasia.org/" target="_blank" rel="noopener">Asociación Ayuda Afasia</a>. Todos los derechos reservados.</p>
   <nav aria-label="Información legal">${LEGAL.map(([k,l])=>`<button type="button" class="pie-enlace" data-a="legal" data-l="${k}">${l}</button>`).join('<span aria-hidden="true">·</span>')}</nav></footer>`}
 const PENDIENTE='<span class="pendiente">[pendiente de la Asociación]</span>';
 const TEXTO_LEGAL={
-aviso:`<h3>Titular</h3><p>Asociación Ayuda Afasia. NIF: ${PENDIENTE}. Domicilio: ${PENDIENTE}. Inscrita en el Registro de Asociaciones con el número ${PENDIENTE}. Correo: ${PENDIENTE}.</p>
+aviso:`<h3>Titular</h3><p>Asociación Ayuda Afasia. NIF: ${PENDIENTE}. Domicilio: ${PENDIENTE}. Inscrita en el Registro de Asociaciones con el número ${PENDIENTE}. Correo: ${PENDIENTE}. Web: <a href="https://afasia.org/" target="_blank" rel="noopener">afasia.org</a>.</p>
 <h3>Qué es Nido</h3><p>Nido es una herramienta gratuita para practicar el lenguaje en casa. Complementa la intervención logopédica; no la sustituye. No es un producto sanitario y no hace diagnósticos. La prueba inicial solo sugiere un nivel para empezar.</p>
 <h3>Propiedad intelectual</h3><p>Los textos, los ejercicios, las ilustraciones de Lino y el diseño de Nido pertenecen a la Asociación Ayuda Afasia o se usan con permiso. No se pueden copiar ni distribuir sin su autorización.</p>
 <h3>Esta versión</h3><p>Esta es una versión de prueba. Los ejercicios y los textos están en revisión.</p>`,
@@ -1402,7 +1404,7 @@ privacidad:`<h3>Responsable</h3><p>Asociación Ayuda Afasia. Contacto para prote
 accesibilidad:`<p>Nido está pensada para personas con afasia y sus familias.</p>
 <ul><li>Letra grande (mínimo 18 px) y muy legible (Atkinson Hyperlegible).</li><li>Buen contraste de color y botones grandes.</li><li>Lino lee en voz alta todo lo que aparece en pantalla.</li><li>Sin límites de tiempo y sin mensajes de error en rojo.</li><li>Se puede responder hablando o tocando.</li></ul>
 <p>Esta versión de prueba todavía no tiene una auditoría de accesibilidad completa. Si algo te resulta difícil, cuéntanoslo: ${PENDIENTE}.</p>`,
-contacto:`<p>Asociación Ayuda Afasia</p><p>Correo: ${PENDIENTE}</p><p>Teléfono: ${PENDIENTE}</p><p>Web: ${PENDIENTE}</p>`
+contacto:`<p>Asociación Ayuda Afasia</p><p>Correo: ${PENDIENTE}</p><p>Teléfono: ${PENDIENTE}</p><p>Web: <a href="https://afasia.org/" target="_blank" rel="noopener">afasia.org</a></p>`
 };
 function capaLegal(k){
   calla();const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);
