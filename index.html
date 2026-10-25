@@ -748,10 +748,13 @@ function sesionDeseo(d){
   ses={items:lista,i:0,res:[],vueltas:[],nuevos:0,deseoVisto:true,cumplidosHoy:[],deseo:d.id};
   empiezaItem();
 }
+/* Para la voz: una sílaba suelta («cu») la deletrean algunas voces como sigla; con tilde («cú») la leen como sílaba */
+function silVoz(x){x=String(x).toLowerCase();if(/[áéíóú]/.test(x))return x;const m=x.match(/^(.*?)([aeiou])([^aeiou]*)$/);
+  if(!m)return x;const t={a:'á',e:'é',i:'í',o:'ó',u:'ú'};return m[1]+t[m[2]]+m[3]}
 function leeSilabas(forzar){
   const it=ses.it;const sp=[...document.querySelectorAll('.silabeo .sil')];
   sp.forEach(x=>x.classList.remove('on','todo'));
-  const partes=['Escucha y repite.'].concat(it.s.map(x=>x+'.'),[it.t+'.']);
+  const partes=['Escucha y repite.'].concat(it.s.map(x=>silVoz(x)+'.'),[it.t+'.']);
   di(partes.join(' '),forzar,.72,k=>{sp.forEach(x=>x.classList.remove('on'));
     if(k>=1&&k<=it.s.length&&sp[k-1])sp[k-1].classList.add('on');
     if(k===it.s.length+1)sp.forEach(x=>x.classList.add('todo'))});
@@ -878,7 +881,7 @@ function lee(){
   const it=ses.it,f=ses.fase;
   if(f==='elige')di(`¿Dónde está ${art(it.w)}?`);
   else if(f==='nombra')di('¿Qué es esto?');
-  else if(f==='pista1')di((ses.msg?ses.msg.voz+' ':'')+'Empieza por '+(it.s.length>1?it.s[0]:it.w.slice(0,1)));
+  else if(f==='pista1')di((ses.msg?ses.msg.voz+' ':'')+'Empieza por '+(it.s.length>1?silVoz(it.s[0]):it.w.slice(0,1)));
   else if(f==='opciones')di((ses.msg&&ses.msg.voz?ses.msg.voz+' ':'')+(nv()===3&&it.s.length>1?'Completa la palabra.':'¿Cuál es? '+ses.opc.map(o=>o.w).join(', ')));
   else if(f==='juntos')di(ses.msg.voz);
   else if(f==='bien')di(ses.msg.voz);
@@ -962,7 +965,7 @@ function pGen(){
 function leeGen(){
   const it=ses.it,f=ses.fase,pre=ses.msg&&ses.msg.voz?ses.msg.voz+' ':'';
   if(f==='bien'||f==='juntos')return di(ses.msg.voz);
-  if(it.tipo==='repite'){if(f==='pista1')return di(pre+'Escucha despacio. '+it.sil,false,.62);if(f==='pregunta')return it.fon?leeSilabas():di('Escucha y repite. '+it.t+'.');return}
+  if(it.tipo==='repite'){if(f==='pista1')return di(pre+'Escucha despacio. '+(it.fon?it.s.map(silVoz).join('… ')+'… '+it.t:it.sil),false,.62);if(f==='pregunta')return it.fon?leeSilabas():di('Escucha y repite. '+it.t+'.');return}
   let t=pre+it.q;
   if(it.txt)t+=' '+it.show.toLowerCase()+'.';
   if(it.f)t+=' '+it.f[0]+'… '+(it.f[1]==='.'?'':it.f[1]);
@@ -1596,7 +1599,7 @@ app.addEventListener('click',e=>{
   const it=ses.it;
   if(a==='oir')return lee();
   if(a==='oirpal')return di(it.w,true);
-  if(a==='oirpista')return di('Empieza por '+(it.s.length>1?it.s[0]:it.w.slice(0,1)),true);
+  if(a==='oirpista')return di('Empieza por '+(it.s.length>1?silVoz(it.s[0]):it.w.slice(0,1)),true);
   if(a==='oirsil')return leeSilabas(true);
   if(a==='oirlento')return di(it.sil||it.t,true,.62);
   if(a==='gelige'){const k=+b.dataset.i;if(k===it.ok)return acierto();ses.descartes.push(k);return casiGen()}
