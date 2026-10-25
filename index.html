@@ -253,6 +253,7 @@ a.boton.primario{color:var(--sobre-salvia)}
 .sil-foto{position:relative;overflow:hidden;border-radius:20px;flex:none;width:150px;height:150px;border-radius:20px;overflow:hidden;display:grid;place-items:center;background:var(--arena)}
 .sil-foto img{width:100%;height:100%;object-fit:cover}.sil-foto .emo{position:static;font-size:84px;line-height:1}
 .silabeo{display:flex;align-items:flex-end;flex-wrap:nowrap;white-space:nowrap;justify-content:center;gap:4px;font-family:var(--f-texto);font-weight:700;font-size:clamp(48px,7vw,84px);line-height:1.1;color:var(--tinta)}
+.silabeo .sep.palabra{width:.5em}
 .silabeo .sep{color:var(--salvia);font-weight:400;padding:0 2px}
 .silabeo .sil{padding:0 4px 6px;border-bottom:7px solid transparent;border-radius:4px;transition:border-color .25s,background .25s,color .25s}
 .silabeo .sil.on{border-bottom-color:var(--salvia-viva);background:var(--durazno-suave)}
@@ -830,7 +831,10 @@ function nuevaSesion(bloque){
   ses={items:lista,i:0,res:[],vueltas:[],nuevos:0,deseoVisto:false,cumplidosHoy:[]};
   empiezaItem();
 }
-function empiezaItem(){const it=ses.items[ses.i];ses.it=it;ses.ayuda=false;ses.descartes=[];ses.opc=null;ses.msg=null;ses.colocadas=[];ses.fallos=0;
+function empiezaItem(){let it=ses.items[ses.i];
+  /* «Escucha y repite» de una o dos palabras: mismo sistema sílaba a sílaba que en los deseos */
+  if(it.tipo==='repite'&&!it.fon&&it.t.trim().split(/\s+/).length<=2){const pal=it.t.trim().split(/\s+/);
+    const ini=[];let k=0;pal.forEach(w=>{ini.push(k);k+=silabas(w).length});it=ses.items[ses.i]=Object.assign({},it,{fon:true,w:it.t.toLowerCase(),s:pal.flatMap(silabas),ini,sil:pal.flatMap(silabas).join('… ')})}ses.it=it;ses.ayuda=false;ses.descartes=[];ses.opc=null;ses.msg=null;ses.colocadas=[];ses.fallos=0;
   if(it.tipo==='nombrar')ses.fase=it.modo||(nv()===1?'elige':'nombra');
   else{ses.fase='pregunta';if(it.tipo==='ordena')ses.fichas=baraja(it.seq.map((t,k)=>({t,k})))}}
 function opcionesPara(it,n){return baraja([it].concat(baraja(PALABRAS.filter(p=>p.w!==it.w)).slice(0,n-1)))}
@@ -950,7 +954,7 @@ function pGen(){
   const oirBtn=`<button class="escuchar" data-a="oir" aria-label="Escuchar otra vez">${I.alt}</button>`;
   const seguir=fin?`<button class="boton primario grande" data-a="seguir">Seguir ${I.sigue}</button>`:'';
   let estimulo='';
-  if(it.fon)estimulo=`<div class="foto silabas-caja ${f==='bien'?'acierto':''}">${conImagen(it.w,it.e)?`<div class="sil-foto">${imagen(it)}</div>`:''}<span class="silabeo" style="font-size:${Math.max(40,Math.min(84,Math.floor(410/(it.t.length*0.62+(it.s.length-1)*0.75))))}px" aria-label="${esc(it.t)}, sílaba a sílaba">${it.s.map((x,k)=>`<span class="sil ${f==='bien'?'todo':''}">${esc(k?x.toLowerCase():May(x.toLowerCase()))}</span>`).join('<span class="sep" aria-hidden="true">·</span>')}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<button class="boton secundario chico" data-a="oirsil">Otra vez, sílaba a sílaba</button></div>`;
+  if(it.fon)estimulo=`<div class="foto silabas-caja ${f==='bien'?'acierto':''}">${conImagen(it.w,it.e)?`<div class="sil-foto">${imagen(it)}</div>`:''}<span class="silabeo" style="font-size:${Math.max(40,Math.min(84,Math.floor(410/(it.t.length*0.62+(it.s.length-1)*0.75))))}px" aria-label="${esc(it.t)}, sílaba a sílaba">${it.s.map((x,k)=>`${k?((it.ini||[0]).includes(k)?'<span class="sep palabra" aria-hidden="true"></span>':'<span class="sep" aria-hidden="true">·</span>'):''}<span class="sil ${f==='bien'?'todo':''}">${esc(k?x.toLowerCase():May(x.toLowerCase()))}</span>`).join('')}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<button class="boton secundario chico" data-a="oirsil">Otra vez, sílaba a sílaba</button></div>`;
   else if(it.tipo==='repite')estimulo=`<div class="foto ${f==='bien'?'acierto':''}"><span class="repite">${it.t}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<span class="provisional">Escucha y repite</span></div>`;
   else if(it.foto)estimulo=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="${esc(it.x||'Foto')}"><img class="fotocasa" src="${it.foto}" alt="">${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}</div>`;
   else if(it.show)estimulo=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="${it.txt?it.show:'Imagen'}">${it.txt?`<span class="repite">${it.show}</span>`:`<span class="emo">${it.show}</span>`}${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}</div>`;
