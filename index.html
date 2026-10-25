@@ -275,6 +275,7 @@ a.boton.primario{color:var(--sobre-salvia)}
 .opciones.grandes .fotocasa.mini{width:100%;max-width:none;border-radius:18px}
 .opciones.grandes .emo{font-size:clamp(110px,16vw,190px)}
 .lado.sin-foto{width:min(900px,100%);justify-self:center;align-items:center}
+.foto-op.cara{width:min(240px,100%)}
 .foto-op{width:min(150px,100%);aspect-ratio:1;object-fit:cover;border-radius:14px}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
@@ -424,7 +425,11 @@ const G={
    {tipo:'elige',q:'¿Cómo se siente?',show:'😊',foto:'media/banco/accion-contento.webp',o:[[0,'contento'],[0,'triste']],ok:0,p:'Mira su boca.',x:'Está contento.'},
    {tipo:'elige',q:'¿Cómo se siente?',show:'😢',foto:'media/banco/accion-triste.webp',o:[[0,'triste'],[0,'contento']],ok:0,p:'Mira sus lágrimas.',x:'Está triste.'},
    {tipo:'elige',q:'¿Cómo se siente?',show:'😠',foto:'media/banco/accion-enfadado.webp',o:[[0,'enfadado'],[0,'contento']],ok:0,p:'Mira sus cejas.',x:'Está enfadado.'},
-   {tipo:'elige',q:'¿Cómo se siente?',show:'⌚',foto:'media/banco/accion-reloj.webp',o:[[0,'preocupada'],[0,'contenta'],[0,'dormida']],ok:0,p:'Mira su cara y el reloj.',x:'Está preocupada: llega tarde.'}],
+   {tipo:'elige',q:'¿Cómo se siente?',show:'⌚',foto:'media/banco/accion-reloj.webp',o:[[0,'preocupada'],[0,'contenta'],[0,'dormida']],ok:0,p:'Mira su cara y el reloj.',x:'Está preocupada: llega tarde.'},
+   {tipo:'elige',q:'¿Quién está triste?',o:[['😢','la mujer','media/banco/quien-mujer-triste.webp'],['😊','el chico','media/banco/quien-chico-contento.webp']],ok:0,p:'Mira su boca y sus ojos.',x:'La mujer está triste.'},
+   {tipo:'elige',q:'¿Quién está contento?',o:[['😢','la mujer','media/banco/quien-mujer-triste.webp'],['😊','el chico','media/banco/quien-chico-contento.webp']],ok:1,p:'Busca la sonrisa.',x:'El chico está contento.'},
+   {tipo:'elige',q:'¿Quién está sorprendida?',o:[['😠','el hombre','media/banco/quien-hombre-enfadado.webp'],['😲','la niña','media/banco/quien-nina-sorprendida.webp']],ok:1,p:'Mira la boca abierta.',x:'La niña está sorprendida.'},
+   {tipo:'elige',q:'¿Quién está enfadado?',o:[['😠','el hombre','media/banco/quien-hombre-enfadado.webp'],['😲','la niña','media/banco/quien-nina-sorprendida.webp']],ok:0,p:'Mira las cejas.',x:'El hombre está enfadado.'}],
   2:[
    {tipo:'elige',q:'Encuentra la llave',o:[['🧦','calcetín'],['🍎','manzana'],['🔑','llave'],['📖','libro'],['👓','gafas'],['⌚','reloj']],ok:2,p:'Es pequeña y abre puertas.',x:'Aquí está la llave.',grid:true},
    {tipo:'elige',q:'Toca el que es diferente',o:[['🍎','manzana'],['🍎','manzana'],['🍎','manzana'],['🍐','pera'],['🍎','manzana'],['🍎','manzana']],ok:3,p:'Mira bien los colores.',x:'La pera es la diferente.',grid:true},
@@ -956,7 +961,7 @@ function pGen(){
     const hueco=it.f?`<p class="frase-hueco">${it.f[0]} <u>${fin?it.o[it.ok][1]:'&nbsp;'}</u>${/^[.,;:!?»]/.test(it.f[1])||!it.f[1]?it.f[1]:' '+it.f[1]}</p>`:'';
     ctl=hueco+`<div class="opciones ${largas?'una':''}" style="--n:${largas?1:n}">${it.o.map((o,k)=>{
       const cls=(fin&&k===it.ok?'ok':'')+' '+((fin&&k!==it.ok)||ses.descartes.includes(k)?'fuera':'')+(imgs?'':' txt');
-      return`<button class="opcion ${cls}" data-a="gelige" data-i="${k}" ${fin||ses.descartes.includes(k)?'disabled':''} aria-label="${o[1]}">${o[0]?`${bancoDe(o[1])?`<img class="foto-op" src="${bancoDe(o[1])}" alt="">`:`<span class="emo">${o[0]}</span>`}<span class="lbl">${o[1]}</span>`:May(o[1])}</button>`}).join('')}</div>`;
+      return`<button class="opcion ${cls}" data-a="gelige" data-i="${k}" ${fin||ses.descartes.includes(k)?'disabled':''} aria-label="${o[1]}">${o[0]?`${o[2]?`<img class="foto-op cara" src="${o[2]}" alt="">`:bancoDe(o[1])?`<img class="foto-op" src="${bancoDe(o[1])}" alt="">`:`<span class="emo">${o[0]}</span>`}<span class="lbl">${o[1]}</span>`:May(o[1])}</button>`}).join('')}</div>`;
   }
   if(it.tipo==='ordena'){
     const huecos=it.seq.map((_,k)=>{const c=fin?{t:it.seq[k]}:ses.colocadas[k];return c?`<button class="ficha ${fin?'ok':''}" data-a="quita" data-i="${k}" ${fin?'disabled':''}>${c.t}</button>`:'<span class="hueco"></span>'}).join(it.pasos?'<span class="flecha" aria-hidden="true">→</span>':'');
