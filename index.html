@@ -356,7 +356,7 @@ const PALABRAS=[
   {w:'café',s:['ca','fé'],e:'☕',d:'cafe'},{w:'leche',s:['le','che'],e:'🥛',d:'cafe'},{w:'cuchara',s:['cu','cha','ra'],e:'🥄',d:'cafe'},
   {w:'teléfono',s:['te','lé','fo','no'],e:'📞',d:'maria'},
   {w:'llave',s:['lla','ve'],e:'🔑'},{w:'gafas',s:['ga','fas'],e:'👓'},{w:'pan',s:['pan'],e:'🍞'},{w:'manzana',s:['man','za','na'],e:'🍎'},
-  {w:'reloj',s:['re','loj'],e:'⌚'},{w:'libro',s:['li','bro'],e:'📖'},{w:'silla',s:['si','lla'],e:'🪑'},{w:'paraguas',s:['pa','ra','guas'],e:'☂️'},{w:'zapato',s:['za','pa','to'],e:'👞'}
+  {w:'reloj',s:['re','loj'],e:'⌚'},{w:'libro',s:['li','bro'],e:'📖'},{w:'silla',s:['si','lla'],e:'🪑'},{w:'paraguas',s:['pa','ra','guas'],e:'☂️'},{w:'zapato',s:['za','pa','to'],e:'👞'},{w:'sopa',s:['so','pa'],e:'🍲'}
 ];
 const DESEOS_BASE=[
   {id:'cafe',nombre:'Pedir en la cafetería',frase:'Un café con leche, por favor.',palabras:['café','leche','cuchara'],color:'#34466a',icono:'☕'},
@@ -423,7 +423,8 @@ const G={
    {tipo:'repite',t:'Gracias',sil:'Gra… cias'},
    {tipo:'elige',q:'¿Cómo se siente?',show:'😊',foto:'media/banco/accion-contento.webp',o:[[0,'contento'],[0,'triste']],ok:0,p:'Mira su boca.',x:'Está contento.'},
    {tipo:'elige',q:'¿Cómo se siente?',show:'😢',foto:'media/banco/accion-triste.webp',o:[[0,'triste'],[0,'contento']],ok:0,p:'Mira sus lágrimas.',x:'Está triste.'},
-   {tipo:'elige',q:'¿Cómo se siente?',show:'😠',foto:'media/banco/accion-enfadado.webp',o:[[0,'enfadado'],[0,'contento']],ok:0,p:'Mira sus cejas.',x:'Está enfadado.'}],
+   {tipo:'elige',q:'¿Cómo se siente?',show:'😠',foto:'media/banco/accion-enfadado.webp',o:[[0,'enfadado'],[0,'contento']],ok:0,p:'Mira sus cejas.',x:'Está enfadado.'},
+   {tipo:'elige',q:'¿Cómo se siente?',show:'⌚',foto:'media/banco/accion-reloj.webp',o:[[0,'preocupada'],[0,'contenta'],[0,'dormida']],ok:0,p:'Mira su cara y el reloj.',x:'Está preocupada: llega tarde.'}],
   2:[
    {tipo:'elige',q:'Encuentra la llave',o:[['🧦','calcetín'],['🍎','manzana'],['🔑','llave'],['📖','libro'],['👓','gafas'],['⌚','reloj']],ok:2,p:'Es pequeña y abre puertas.',x:'Aquí está la llave.',grid:true},
    {tipo:'elige',q:'Toca el que es diferente',o:[['🍎','manzana'],['🍎','manzana'],['🍎','manzana'],['🍐','pera'],['🍎','manzana'],['🍎','manzana']],ok:3,p:'Mira bien los colores.',x:'La pera es la diferente.',grid:true},
@@ -432,7 +433,7 @@ const G={
    {tipo:'repite',t:'Buenos días',sil:'Bue… nos… dí… as'},
    {tipo:'elige',q:'Encuentra la taza',o:[['🔑','llave'],['☕','taza'],['🧦','calcetín'],['🍞','pan'],['📞','teléfono'],['🪑','silla']],ok:1,p:'Se usa para el café.',x:'Aquí está la taza.',grid:true,d:'cafe'}],
   3:[
-   {tipo:'elige',q:'Se acabó la leche. ¿Qué haces?',show:'🥛',o:[[0,'Compro más leche'],[0,'Llamo al médico'],[0,'Me voy a dormir']],ok:0,p:'¿Dónde se consigue leche?',x:'Compro más leche.'},
+   {tipo:'elige',q:'Queda poca leche. ¿Qué apunto en la lista de la compra?',show:'🥛',foto:'media/banco/accion-nevera.webp',o:[[0,'Leche'],[0,'Gafas'],[0,'Paraguas']],ok:0,p:'Mira lo que hay en la puerta de la nevera.',x:'Apunto leche en la lista.'},
    {tipo:'elige',q:'Llueve y voy a salir. ¿Qué me llevo?',show:'🌧️',foto:'media/banco/accion-lluvia.webp',o:[['☂️','paraguas'],['🕶️','gafas de sol'],['🩱','bañador']],ok:0,p:'¿Qué nos protege del agua?',x:'Me llevo el paraguas.'},
    {tipo:'elige',q:'No encuentro las llaves. ¿Qué hago?',show:'🔑',foto:'media/banco/accion-llaves.webp',o:[[0,'Las busco donde las dejo siempre'],[0,'Rompo la puerta'],[0,'Salgo sin cerrar']],ok:0,p:'¿Qué es lo más tranquilo?',x:'Las busco donde las dejo siempre.'},
    {tipo:'elige',q:'Son las 9:00. El autobús sale a las 9:30 y tardo 20 minutos. ¿Llego?',show:'🕘',o:[[0,'Sí'],[0,'No']],ok:0,p:'Nueve y veinte es antes que nueve y media.',x:'Sí, llego a las nueve y veinte.'},
@@ -461,7 +462,7 @@ const hoyISO=()=>new Date().toISOString().slice(0,10);
 const MAX_DESEOS=3,DIAS_FOTO=30;
 function activos(){return S.deseos.filter(d=>!S.cumplidos[d.id])}
 /* Banco de imágenes provisional para el prototipo (fotos de Pexels). Prioridad: 1º foto de casa, 2º banco, 3º dibujo, 4º palabra escrita */
-const BANCO={'café':'media/banco/cafe.webp',gafas:'media/banco/gafas.webp',leche:'media/banco/leche.webp',reloj:'media/banco/reloj.webp',silla:'media/banco/silla.webp','teléfono':'media/banco/telefono.webp',manzana:'media/banco/manzana.webp',cuchara:'media/banco/cuchara.webp',libro:'media/banco/libro.webp',paraguas:'media/banco/paraguas.webp',llave:'media/banco/llave.webp',zapato:'media/banco/zapato.webp',pan:'media/banco/pan.webp',martillo:'media/banco/martillo.webp',pera:'media/banco/pera.webp','perro':'media/banco/perro.webp','pájaro':'media/banco/pajaro.webp','pantalón':'media/banco/pantalon.webp','camiseta':'media/banco/camiseta.webp','calcetín':'media/banco/calcetin.webp','abrigo':'media/banco/abrigo.webp','gato':'media/banco/gato.webp','bañador':'media/banco/banador.webp',caballo:'media/banco/caballo.webp','coche':'media/banco/coche.webp','avión':'media/banco/avion.webp','bicicleta':'media/banco/bicicleta.webp','autobús':'media/banco/autobus.webp',vaso:'media/banco/vaso.webp'};
+const BANCO={'café':'media/banco/cafe.webp',gafas:'media/banco/gafas.webp',leche:'media/banco/leche.webp',reloj:'media/banco/reloj.webp',silla:'media/banco/silla.webp','teléfono':'media/banco/telefono.webp',manzana:'media/banco/manzana.webp',cuchara:'media/banco/cuchara.webp',libro:'media/banco/libro.webp',paraguas:'media/banco/paraguas.webp',llave:'media/banco/llave.webp',zapato:'media/banco/zapato.webp',pan:'media/banco/pan.webp',martillo:'media/banco/martillo.webp',pera:'media/banco/pera.webp','perro':'media/banco/perro.webp','pájaro':'media/banco/pajaro.webp','pantalón':'media/banco/pantalon.webp','camiseta':'media/banco/camiseta.webp','calcetín':'media/banco/calcetin.webp','abrigo':'media/banco/abrigo.webp','gato':'media/banco/gato.webp','bañador':'media/banco/banador.webp',caballo:'media/banco/caballo.webp',sopa:'media/banco/accion-sopa.webp','coche':'media/banco/coche.webp','avión':'media/banco/avion.webp','bicicleta':'media/banco/bicicleta.webp','autobús':'media/banco/autobus.webp',vaso:'media/banco/vaso.webp'};
 function bancoDe(w){return BANCO[String(w).toLowerCase()]}
 function conImagen(w,e){return !!(fotoDe(w)||bancoDe(w)||e)}
 function fotoDe(w){return S.fotos[w]||S.fotos[w.toLowerCase()]}
@@ -889,7 +890,7 @@ function pEjercicio(){
   }
   pinta(`<section class="pantalla">${cabecera()}<div class="ejercicio${grande?' una':''}">${izq}${der}</div></section>`);
 }
-function art(w){if(/^[A-ZÁÉÍÓÚÑ]/.test(w))return w;if(!PALABRAS.some(p=>p.w===w))return(/a$/.test(w)?'la ':'el ')+w;const fem=['leche','cuchara','llave','manzana','silla'].includes(w);const pl=w==='gafas';return(pl?'las ':fem?'la ':'el ')+w}
+function art(w){if(/^[A-ZÁÉÍÓÚÑ]/.test(w))return w;if(!PALABRAS.some(p=>p.w===w))return(/a$/.test(w)?'la ':'el ')+w;const fem=['leche','cuchara','llave','manzana','silla','sopa'].includes(w);const pl=w==='gafas';return(pl?'las ':fem?'la ':'el ')+w}
 function lee(){
   if(ses.it.tipo!=='nombrar')return leeGen();
   const it=ses.it,f=ses.fase;
