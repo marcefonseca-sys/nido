@@ -264,6 +264,18 @@ a.boton.primario{color:var(--sobre-salvia)}
 .animo:active{transform:translateY(3px);box-shadow:0 1px 0 var(--c)}
 .animo-pro{display:flex;flex-direction:column;gap:8px}.animo-pro p{margin:0}
 .animo-dia{display:flex;flex-direction:column;align-items:center;gap:2px}.animo-dia svg{width:36px;height:36px}.animo-dia small{font-size:13px;color:var(--tinta-suave)}
+.ejercicio.una{grid-template-columns:minmax(0,1fr)}
+.elige-grande{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;width:100%}
+.cab-lino{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:nowrap}
+.opciones.grandes.fin{width:min(600px,100%)}
+.elige-grande .palabra-grande{margin:0}
+.cab-lino .mensaje{margin:0}
+.opciones.grandes{width:min(860px,100%);gap:28px}
+.opciones.grandes .opcion{padding:14px}
+.opciones.grandes .fotocasa.mini{width:100%;max-width:none;border-radius:18px}
+.opciones.grandes .emo{font-size:clamp(110px,16vw,190px)}
+.lado.sin-foto{width:min(900px,100%);justify-self:center;align-items:center}
+.foto-op{width:min(150px,100%);aspect-ratio:1;object-fit:cover;border-radius:14px}
 /* final y nido */
 .dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;flex:1}
 .palabras{display:flex;flex-wrap:wrap;gap:10px}
@@ -835,16 +847,17 @@ function pEjercicio(){
   let linoImg=M.bienvenida,linoAlt='Lino te mira';
   if(['pista1','opciones','juntos'].includes(f)&&ses.ayuda){linoImg=M.pista;linoAlt='Lino guiña el ojo junto a un sobrecito'}
   if(f==='bien'){linoImg=M.palabra;linoAlt='Lino se lleva la palabra en el pico'}
-  let izq,der='';
+  let izq,der='',grande=false;
   const fotoHTML=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="Foto: ${esc(it.w)}">${imagen(it)}${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}${notaImagen(it)}</div>`;
   izq=fotoHTML;
   const enun={elige:`¿Dónde está ${art(it.w)}?`,nombra:'¿Qué es esto?',escucha:'¿Qué es esto?',confirma:'¿Te ha salido?',pista1:'¿Qué es esto?',opciones:nv()===3&&it.s.length>1?'Completa la palabra':'¿Cuál es?',bien:'',juntos:''}[f];
   const msg=ses.msg?`<div class="mensaje ${ses.msg.t}"><p class="titulo">${ses.msg.a}</p>${ses.msg.b?`<p>${ses.msg.b}</p>`:''}</div>`:'';
   if(nv()===1&&(f==='elige'||f==='bien'||f==='juntos')){
     if(!ses.opc)ses.opc=opcionesPara(it,2);
-    izq=`<div class="lado"><img class="ilus lino-mini ${f==='bien'?'hop':''}" src="${linoImg}" alt="${linoAlt}" style="height:240px;max-width:90%">${msg}</div>`;
-    der=`<div class="lado">${f==='elige'?`<div class="pregunta"><h2>${enun}</h2><button class="escuchar" data-a="oir" aria-label="Escuchar otra vez">${I.alt}</button></div>`:''}
-      <div class="opciones" style="--n:2">${ses.opc.map(o=>`<button class="opcion ${ok&&o.w===it.w?'ok':''} ${ok&&o.w!==it.w?'fuera':''}" data-a="elige" data-w="${o.w}" ${ok?'disabled':''} aria-label="${esc(o.w)}">${imagen(o,'fotocasa mini')}</button>`).join('')}</div>
+    /* Elegir entre dos fotos: las fotos mandan; Lino, pequeño, acompaña a la pregunta */
+    grande=true;izq='';
+    der=`<div class="elige-grande"><div class="cab-lino"><img class="ilus lino-mini ${f==='bien'?'hop':''}" src="${linoImg}" alt="${linoAlt}" style="height:110px">${f==='elige'?`<div class="pregunta"><h2>${enun}</h2><button class="escuchar" data-a="oir" aria-label="Escuchar otra vez">${I.alt}</button></div>`:msg}</div>
+      <div class="opciones grandes ${f==='elige'?'':'fin'}" style="--n:2">${ses.opc.map(o=>`<button class="opcion ${ok&&o.w===it.w?'ok':''} ${ok&&o.w!==it.w?'fuera':''}" data-a="elige" data-w="${o.w}" ${ok?'disabled':''} aria-label="${esc(o.w)}">${imagen(o,'fotocasa mini')}</button>`).join('')}</div>
       ${f==='juntos'?`<p class="palabra-grande">${May(it.w)}</p><div class="fila"><button class="escuchar" data-a="oirpal" aria-label="Escuchar la palabra">${I.alt}</button><button class="boton primario" data-a="seguir">Seguir ${I.sigue}</button></div>`:''}
       ${f==='bien'?`<button class="boton primario grande" data-a="seguir">Seguir ${I.sigue}</button>`:''}</div>`;
   }else{
@@ -873,7 +886,7 @@ function pEjercicio(){
       ${msg}${enun&&f!=='confirma'?`<div class="pregunta"><h2>${enun}</h2><button class="escuchar" data-a="oir" aria-label="Escuchar la pregunta">${I.alt}</button></div>`:''}
       ${f==='confirma'?`<div class="pregunta"><h2>${enun}</h2></div>`:''}${ctl}</div>`;
   }
-  pinta(`<section class="pantalla">${cabecera()}<div class="ejercicio">${izq}${der}</div></section>`);
+  pinta(`<section class="pantalla">${cabecera()}<div class="ejercicio${grande?' una':''}">${izq}${der}</div></section>`);
 }
 function art(w){if(/^[A-ZÁÉÍÓÚÑ]/.test(w))return w;if(!PALABRAS.some(p=>p.w===w))return(/a$/.test(w)?'la ':'el ')+w;const fem=['leche','cuchara','llave','manzana','silla'].includes(w);const pl=w==='gafas';return(pl?'las ':fem?'la ':'el ')+w}
 function lee(){
@@ -940,7 +953,7 @@ function pGen(){
     const hueco=it.f?`<p class="frase-hueco">${it.f[0]} <u>${fin?it.o[it.ok][1]:'&nbsp;'}</u>${/^[.,;:!?»]/.test(it.f[1])||!it.f[1]?it.f[1]:' '+it.f[1]}</p>`:'';
     ctl=hueco+`<div class="opciones ${largas?'una':''}" style="--n:${largas?1:n}">${it.o.map((o,k)=>{
       const cls=(fin&&k===it.ok?'ok':'')+' '+((fin&&k!==it.ok)||ses.descartes.includes(k)?'fuera':'')+(imgs?'':' txt');
-      return`<button class="opcion ${cls}" data-a="gelige" data-i="${k}" ${fin||ses.descartes.includes(k)?'disabled':''} aria-label="${o[1]}">${o[0]?`<span class="emo">${o[0]}</span><span class="lbl">${o[1]}</span>`:May(o[1])}</button>`}).join('')}</div>`;
+      return`<button class="opcion ${cls}" data-a="gelige" data-i="${k}" ${fin||ses.descartes.includes(k)?'disabled':''} aria-label="${o[1]}">${o[0]?`${bancoDe(o[1])?`<img class="foto-op" src="${bancoDe(o[1])}" alt="">`:`<span class="emo">${o[0]}</span>`}<span class="lbl">${o[1]}</span>`:May(o[1])}</button>`}).join('')}</div>`;
   }
   if(it.tipo==='ordena'){
     const huecos=it.seq.map((_,k)=>{const c=fin?{t:it.seq[k]}:ses.colocadas[k];return c?`<button class="ficha ${fin?'ok':''}" data-a="quita" data-i="${k}" ${fin?'disabled':''}>${c.t}</button>`:'<span class="hueco"></span>'}).join(it.pasos?'<span class="flecha" aria-hidden="true">→</span>':'');
@@ -959,7 +972,7 @@ function pGen(){
   const lado=`${msg}${fin&&it.tipo!=='repite'?'':`<div class="pregunta"><h2>${preg}</h2>${f==='confirma'?'':oirBtn}</div>`}${ctl}${seguir}`;
   let cuerpo;
   if(estimulo)cuerpo=`<div class="ejercicio">${estimulo}<div class="lado"><img class="ilus lino-mini ${f==='bien'?'hop':''}" src="${linoImg}" alt="${linoAlt}">${lado}</div></div>`;
-  else cuerpo=`<div class="ejercicio ancho"><div class="lado"><img class="ilus ${f==='bien'?'hop':''}" src="${linoImg}" alt="${linoAlt}" style="height:200px;width:auto;max-width:90%"></div><div class="lado">${lado}</div></div>`;
+  else cuerpo=`<div class="ejercicio una"><div class="lado sin-foto"><img class="ilus lino-mini ${f==='bien'?'hop':''}" src="${linoImg}" alt="${linoAlt}" style="height:110px">${lado}</div></div>`;
   pinta(`<section class="pantalla">${cabecera()}${cuerpo}</section>`);
 }
 function leeGen(){
