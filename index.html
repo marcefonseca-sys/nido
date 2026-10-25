@@ -250,7 +250,7 @@ a.boton.primario{color:var(--sobre-salvia)}
 .envio{display:flex;flex-direction:column;gap:10px}
 .envio p{margin:0}
 .silabas-caja{display:flex;align-items:center;flex-direction:column;justify-content:center;gap:22px;padding:24px}
-.sil-foto{position:static;flex:none;width:150px;height:150px;border-radius:20px;overflow:hidden;display:grid;place-items:center;background:var(--arena)}
+.sil-foto{position:relative;overflow:hidden;border-radius:20px;flex:none;width:150px;height:150px;border-radius:20px;overflow:hidden;display:grid;place-items:center;background:var(--arena)}
 .sil-foto img{width:100%;height:100%;object-fit:cover}.sil-foto .emo{position:static;font-size:84px;line-height:1}
 .silabeo{display:flex;align-items:flex-end;flex-wrap:nowrap;white-space:nowrap;justify-content:center;gap:4px;font-family:var(--f-texto);font-weight:700;font-size:clamp(48px,7vw,84px);line-height:1.1;color:var(--tinta)}
 .silabeo .sep{color:var(--salvia);font-weight:400;padding:0 2px}
@@ -447,6 +447,10 @@ const hoyISO=()=>new Date().toISOString().slice(0,10);
 /* ---- deseos: máximo 3 en curso; fotos solo en los deseos, borradas a los 30 días de cumplirse ---- */
 const MAX_DESEOS=3,DIAS_FOTO=30;
 function activos(){return S.deseos.filter(d=>!S.cumplidos[d.id])}
+/* Banco de imágenes provisional para el prototipo (fotos de Pexels). Prioridad: 1º foto de casa, 2º banco, 3º dibujo, 4º palabra escrita */
+const BANCO={'café':'media/banco/cafe.webp',gafas:'media/banco/gafas.webp',leche:'media/banco/leche.webp',reloj:'media/banco/reloj.webp',silla:'media/banco/silla.webp','teléfono':'media/banco/telefono.webp'};
+function bancoDe(w){return BANCO[String(w).toLowerCase()]}
+function conImagen(w,e){return !!(fotoDe(w)||bancoDe(w)||e)}
 function fotoDe(w){return S.fotos[w]||S.fotos[w.toLowerCase()]}
 function fotosDe(d){return d.palabras.filter(fotoDe)}
 function fechaBorrado(d){const f=S.cumplidos[d.id];if(!f||f===true)return null;const x=new Date(f+'T12:00');x.setDate(x.getDate()+DIAS_FOTO);return x.toISOString().slice(0,10)}
@@ -739,7 +743,7 @@ function itemsFrase(d){
 }
 function sesionDeseo(d){
   const pal=d.palabras.slice(0,3),lista=[];
-  pal.forEach(w=>{lista.push(itemSilabas(w,d));const it=Object.assign(itemPalabra(w),{b:'des',d:d.id});if(fotoDe(w)||it.e)lista.push(it)});
+  pal.forEach(w=>{lista.push(itemSilabas(w,d));const it=Object.assign(itemPalabra(w),{b:'des',d:d.id});if(conImagen(w,it.e))lista.push(it)});
   lista.push(...itemsFrase(d));
   ses={items:lista,i:0,res:[],vueltas:[],nuevos:0,deseoVisto:true,cumplidosHoy:[],deseo:d.id};
   empiezaItem();
@@ -776,7 +780,7 @@ function itemPalabra(w){
   return Object.assign({tipo:'nombrar',b:'den'},p||{w:w,s:silabas(w),e:null},{d:d?d.id:undefined});
 }
 function palabrasNombrar(n){
-  const deseoPend=[...new Set(S.deseos.flatMap(d=>d.palabras))].filter(w=>!S.logradas[w]&&(fotoDe(w)||itemPalabra(w).e));
+  const deseoPend=[...new Set(S.deseos.flatMap(d=>d.palabras))].filter(w=>!S.logradas[w]&&conImagen(w,itemPalabra(w).e));
   const elegidas=baraja(deseoPend).slice(0,Math.min(3,n));
   const resto=baraja(PALABRAS.map(p=>p.w).filter(w=>!elegidas.some(x=>x.toLowerCase()===w)));
   return baraja(elegidas.concat(resto).slice(0,n)).map(itemPalabra);
@@ -785,11 +789,13 @@ function palabrasNombrar(n){
 function imagen(it,clase){
   const f=S.fotos[it.w]||S.fotos[it.w.toLowerCase()];
   if(f)return`<img class="${clase||'fotocasa'}" src="${f}" alt="">`;
+  const bk=bancoDe(it.w);if(bk)return`<img class="${clase||'fotocasa'}" src="${bk}" alt="">`;
   if(it.e)return`<span class="emo">${it.e}</span>`;
   return`<span class="repite">${esc(it.w)}</span>`;
 }
 function notaImagen(it){
   if(S.fotos[it.w]||S.fotos[it.w.toLowerCase()])return'';
+  if(bancoDe(it.w))return'';
   return it.e?'<span class="provisional">Imagen provisional · aquí irá la foto de casa</span>':`<span class="provisional">Sin foto · la familia puede añadirla en Familia</span>`;
 }
 function nv(){return ses&&ses.it&&ses.it.nivel?ses.it.nivel:S.nivel}
@@ -891,7 +897,7 @@ function acierto(){
   ses.res[ses.i]=ses.ayuda?'ayuda':'bien';ses.vueltas.push(it.tipo==='nombrar'?it.w:etiqueta(it));
   S.hilos.push(it.d||((S.hilos.length%3)?'rama':'rama-clara'));ses.nuevos++;
   /* una palabra de un deseo «vuelve» al nombrarla con su imagen; si no tiene imagen (hola, un nombre sin foto), al repetirla bien a la primera sílaba a sílaba */
-  const cuenta=it.d&&(it.tipo==='nombrar'||(it.fon&&!ses.ayuda&&!(fotoDe(it.w)||it.e)));
+  const cuenta=it.d&&(it.tipo==='nombrar'||(it.fon&&!ses.ayuda&&!conImagen(it.w,it.e)));
   const nueva=cuenta&&!S.logradas[it.w];if(cuenta)S.logradas[it.w]=true;
   if(!S.dias.includes(hoyISO()))S.dias.push(hoyISO());
   guarda();
@@ -921,7 +927,7 @@ function pGen(){
   const oirBtn=`<button class="escuchar" data-a="oir" aria-label="Escuchar otra vez">${I.alt}</button>`;
   const seguir=fin?`<button class="boton primario grande" data-a="seguir">Seguir ${I.sigue}</button>`:'';
   let estimulo='';
-  if(it.fon)estimulo=`<div class="foto silabas-caja ${f==='bien'?'acierto':''}">${fotoDe(it.w)||it.e?`<div class="sil-foto">${imagen(it)}</div>`:''}<span class="silabeo" style="font-size:${Math.max(40,Math.min(84,Math.floor(410/(it.t.length*0.62+(it.s.length-1)*0.75))))}px" aria-label="${esc(it.t)}, sílaba a sílaba">${it.s.map((x,k)=>`<span class="sil ${f==='bien'?'todo':''}">${esc(k?x.toLowerCase():May(x.toLowerCase()))}</span>`).join('<span class="sep" aria-hidden="true">·</span>')}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<button class="boton secundario chico" data-a="oirsil">Otra vez, sílaba a sílaba</button></div>`;
+  if(it.fon)estimulo=`<div class="foto silabas-caja ${f==='bien'?'acierto':''}">${conImagen(it.w,it.e)?`<div class="sil-foto">${imagen(it)}</div>`:''}<span class="silabeo" style="font-size:${Math.max(40,Math.min(84,Math.floor(410/(it.t.length*0.62+(it.s.length-1)*0.75))))}px" aria-label="${esc(it.t)}, sílaba a sílaba">${it.s.map((x,k)=>`<span class="sil ${f==='bien'?'todo':''}">${esc(k?x.toLowerCase():May(x.toLowerCase()))}</span>`).join('<span class="sep" aria-hidden="true">·</span>')}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<button class="boton secundario chico" data-a="oirsil">Otra vez, sílaba a sílaba</button></div>`;
   else if(it.tipo==='repite')estimulo=`<div class="foto ${f==='bien'?'acierto':''}"><span class="repite">${it.t}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<span class="provisional">Escucha y repite</span></div>`;
   else if(it.show)estimulo=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="${it.txt?it.show:'Imagen'}">${it.txt?`<span class="repite">${it.show}</span>`:`<span class="emo">${it.show}</span>`}${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}</div>`;
   let ctl='';
@@ -1144,7 +1150,7 @@ function capaDeseos(){
         <fieldset class="campo"><legend>Sus palabras</legend>
           <p class="ayuda" style="font-size:16px">Una foto de casa ayuda a que la palabra vuelva: su taza, la cara de María, su bar. En la tablet, «Foto» deja hacerla con la cámara. Las fotos se quedan solo en esta tablet y se borran 30 días después de cumplirse el deseo.</p>
           <ul class="lista-palabras">${d.palabras.map((w,k)=>{const it=itemPalabra(w);const f=S.fotos[w]||S.fotos[w.toLowerCase()];
-            return`<li><span class="mini-foto">${f?`<img src="${f}" alt="">`:it.e?`<span>${it.e}</span>`:'<span class="ayuda" style="font-size:13px">sin foto</span>'}</span>
+            return`<li><span class="mini-foto">${f?`<img src="${f}" alt="">`:bancoDe(w)?`<img src="${bancoDe(w)}" alt="">`:it.e?`<span>${it.e}</span>`:'<span class="ayuda" style="font-size:13px">sin foto</span>'}</span>
             <b class="lp-w">${esc(w)}${f&&(S.revFotos||{})[w]==='cambiar'?'<span class="aviso-foto" style="display:block;font-size:15px">La logopeda pide otra foto</span>':''}</b>
             <label class="boton secundario chico" for="fd-foto-${k}">${f?'Cambiar foto':'Foto'}</label><input type="file" accept="image/*" id="fd-foto-${k}" data-foto="${esc(w)}" class="sr">
             <button type="button" class="txt-btn" data-quitar="${k}" aria-label="Quitar ${esc(w)}">Quitar</button></li>`}).join('')}</ul>
