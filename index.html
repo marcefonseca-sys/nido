@@ -984,7 +984,7 @@ function siguiente(){
   if(ses.res[ses.i]===undefined)ses.res[ses.i]='ayuda';
   ses.i++;
   if(ses.i>=ses.items.length&&ses.prueba){
-    const n=nivelSugerido(ses.puntos);S.nivel=n;S.prueba={fecha:hoyISO(),nivel:n,puntos:ses.puntos};guarda();ses=null;
+    const n=nivelSugerido(ses.puntos);if(!S.ajustePro)S.nivel=n;S.prueba={fecha:hoyISO(),nivel:n,puntos:ses.puntos};guarda();ses=null;
     return ir('pruebaFin','durazno');
   }
   if(ses.i>=ses.items.length){
@@ -1072,9 +1072,7 @@ function capaFamilia(tab){
     ${avisoFotos().map(d=>`<div class="aviso-prueba"><p><b>Las fotos de «${esc(d.nombre)}» se borrarán el ${fechaCorta(fechaBorrado(d))}.</b> El deseo ya está cumplido; su rincón se queda en Mi nido.</p></div>`).join('')}
     <p class="titulo" style="font-size:30px">Ajustes</p>
     <div class="campo"><label for="f-nombre">Nombre de la persona</label><input type="text" id="f-nombre" value="${esc(S.nombre)}" maxlength="24" autocomplete="off"></div>
-    <div class="aviso-prueba">${S.prueba?`<p><b>Prueba inicial del ${fechaCorta(S.prueba.fecha)}:</b> punto de partida sugerido «${NIVELES[S.prueba.nivel]}». Es orientativa, no diagnóstica: su logopeda o psicóloga decide el ajuste abajo.</p>`:'<p><b>Prueba inicial pendiente.</b> Son 8 ejercicios cortos que sugieren el nivel para empezar.</p>'}
-      <button type="button" class="boton secundario chico" id="f-prueba">${S.prueba?'Repetir la prueba inicial':'Hacer la prueba inicial'}</button></div>
-    <fieldset class="campo"><legend>Ajuste de la práctica</legend><p class="ayuda" style="font-size:16px;margin:0 0 6px">Sigue lo que indique su logopeda o psicóloga, según su tratamiento.</p>${[1,2,3].map(n=>`<label class="radio"><input type="radio" name="nivel" id="f-nivel-${n}" value="${n}" ${S.nivel===n?'checked':''}><span><b>${NIVELES[n]}</b><br><span class="ayuda" style="font-size:16px">${NIVEL_DET[n]}</span></span></label>`).join('')}</fieldset>
+    <div class="aviso-prueba"><p><b>Ajuste de la práctica: ${NIVELES[S.nivel]}.</b> ${NIVEL_DET[S.nivel]}. Lo decide su logopeda o psicóloga desde su espacio, según su tratamiento.</p></div>
     <label class="radio"><input type="checkbox" id="f-voz" ${S.voz?'checked':''}> Lino lee en voz alta</label>
     <label class="radio"><input type="checkbox" id="f-grabar" ${S.grabar!==false?'checked':''}> <span>Guardar grabaciones de su voz<br><span class="ayuda" style="font-size:16px">Se quedan solo en esta tablet, para escucharlas en Progreso.</span></span></label>
     <div class="campo"><label for="f-voz-nombre">Voz</label>
@@ -1093,12 +1091,11 @@ function capaFamilia(tab){
   });
   capa.querySelector('#ff').addEventListener('submit',e=>{e.preventDefault();
     const nom=capa.querySelector('#f-nombre').value.trim();if(nom)S.nombre=nom;
-    S.nivel=+capa.querySelector('input[name=nivel]:checked').value;S.voz=capa.querySelector('#f-voz').checked;S.grabar=capa.querySelector('#f-grabar').checked;leeVoz();guarda();capa.remove();render();});
+    S.voz=capa.querySelector('#f-voz').checked;S.grabar=capa.querySelector('#f-grabar').checked;leeVoz();guarda();capa.remove();render();});
   function leeVoz(){const sel=capa.querySelector('#f-voz-nombre');if(sel)S.vozNombre=sel.value;const r=capa.querySelector('input[name=velocidad]:checked');if(r)S.velocidad=r.value}
   capa.querySelector('#f-probar').addEventListener('click',()=>{leeVoz();const nom=capa.querySelector('#f-nombre').value.trim()||S.nombre;di(`Hola, ${nom}. Soy Lino. Vamos a tejer el nido, palabra a palabra.`,true)});
   capa.querySelector('#f-nombre').focus();
   conectaPestanas(capa);
-  capa.querySelector('#f-prueba').addEventListener('click',()=>{capa.remove();empiezaPrueba();transicion('durazno',()=>{vista='ejercicio';render();lee()})});
   conectaEnvio(capa,()=>{capa.remove();capaFamilia()});
 }
 function pestanas(act){return`<div class="pestanas" role="tablist">${[['ajustes','Ajustes'],['deseos','Deseos']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-tab="${k}">${l}</button>`).join('')}</div>`}
@@ -1338,8 +1335,8 @@ function enviaInforme(){
   if(navigator.share)return navigator.share({title:'Informe semanal de Nido · Paciente '+S.nombre,text:t}).then(()=>{marcaInforme();return true}).catch(()=>false);
   return navigator.clipboard.writeText(t).then(()=>{marcaInforme();return true}).catch(()=>false);
 }
-function pestanasPro(act){return`<div class="pestanas" role="tablist">${[['progreso','Progreso'],['fotos','Fotos de casa'],['informe','Informe semanal']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-pro="${k}">${l}</button>`).join('')}</div>`}
-function conectaPro(capa){capa.querySelectorAll('[data-pro]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();b.dataset.pro==='informe'?capaInforme():b.dataset.pro==='fotos'?capaFotosPro():capaProgreso()}))}
+function pestanasPro(act){return`<div class="pestanas" role="tablist">${[['progreso','Progreso'],['ajuste','Ajuste'],['fotos','Fotos de casa'],['informe','Informe semanal']].map(([k,l])=>`<button type="button" role="tab" class="pestana ${act===k?'activa':''}" aria-selected="${act===k}" data-pro="${k}">${l}</button>`).join('')}</div>`}
+function conectaPro(capa){capa.querySelectorAll('[data-pro]').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('activa'))return;capa.remove();b.dataset.pro==='informe'?capaInforme():b.dataset.pro==='fotos'?capaFotosPro():b.dataset.pro==='ajuste'?capaAjustePro():capaProgreso()}))}
 function capaPro(){
   if(proAbierto)return capaProgreso();
   const c=proCfg(),nuevo=!c.pin;
@@ -1365,6 +1362,26 @@ function capaPro(){
         c.pin=v;guarda();proAbierto=true;capa.remove();return capaInforme()}
       if(v!==c.pin){error='Ese PIN no es. Prueba otra vez.';return pinta()}
       proAbierto=true;capa.remove();capaProgreso()});
+  };
+  pinta();
+}
+function capaAjustePro(){
+  const capa=document.createElement('div');capa.className='capa';app.appendChild(capa);let aviso='';
+  const pinta=()=>{
+    capa.innerHTML=`<form class="capa-caja ancha" id="fa">
+      <span class="etiqueta">Espacio profesional</span>${pestanasPro('ajuste')}
+      <p class="titulo" style="font-size:30px">Ajuste de la práctica</p>
+      <p class="ayuda">Adapta los ejercicios de casa a su tratamiento. Describe cómo es el ejercicio, no el grado de afectación.</p>
+      <div class="aviso-prueba">${S.prueba?`<p><b>Prueba inicial del ${fechaCorta(S.prueba.fecha)}:</b> punto de partida sugerido «${NIVELES[S.prueba.nivel]}». Es orientativa, no diagnóstica.</p>`:'<p><b>Prueba inicial pendiente.</b> Son 8 ejercicios cortos que sugieren un punto de partida.</p>'}
+        <button type="button" class="boton secundario chico" id="fa-prueba">${S.prueba?'Repetir la prueba inicial':'Hacer la prueba inicial'}</button></div>
+      <fieldset class="campo"><legend>Ajuste</legend>${[1,2,3].map(n=>`<label class="radio"><input type="radio" name="nivel" id="fa-nivel-${n}" value="${n}" ${S.nivel===n?'checked':''}><span><b>${NIVELES[n]}</b><br><span class="ayuda" style="font-size:16px">${NIVEL_DET[n]}</span></span></label>`).join('')}</fieldset>
+      ${aviso?`<p class="ayuda" role="status">${aviso}</p>`:''}
+      <div class="fila" style="justify-content:space-between"><button type="button" class="boton secundario" id="fa-salir">Cerrar y bloquear</button><button class="boton primario" type="submit">Guardar</button></div>
+    </form>`;
+    conectaPro(capa);
+    capa.querySelector('#fa').addEventListener('submit',e=>{e.preventDefault();S.nivel=+capa.querySelector('input[name=nivel]:checked').value;S.ajustePro=true;guarda();aviso='Guardado. Las próximas sesiones usarán este ajuste.';pinta()});
+    capa.querySelector('#fa-prueba').addEventListener('click',()=>{capa.remove();proAbierto=false;empiezaPrueba();transicion('durazno',()=>{vista='ejercicio';render();lee()})});
+    capa.querySelector('#fa-salir').addEventListener('click',()=>{proAbierto=false;capa.remove();render()});
   };
   pinta();
 }
