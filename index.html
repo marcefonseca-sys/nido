@@ -397,7 +397,8 @@ const G={
    {tipo:'elige',q:'¿Qué frase es?',show:'🧓🍞',o:[[0,'El abuelo come pan.'],[0,'El abuelo lee un libro.']],ok:0,p:'Mira lo que tiene en la mano.',x:'El abuelo come pan.'},
    {tipo:'elige',q:'¿Qué frase es?',show:'🐕',o:[[0,'El perro ladra.'],[0,'El perro duerme.']],ok:0,p:'Mira los ojos del perro.',x:'El perro ladra.'},
    {tipo:'elige',q:'¿Qué frase es?',show:'🛌',o:[[0,'La mujer duerme.'],[0,'La mujer cocina.']],ok:0,p:'Mira dónde está.',x:'La mujer duerme.'},
-   {tipo:'elige',q:'¿Qué frase es?',show:'☕',o:[[0,'Bebo un café.'],[0,'Leo el periódico.']],ok:0,p:'Mira la taza.',x:'Bebo un café.',d:'cafe'},
+   {tipo:'elige',q:'¿Qué frase es?',show:'☕',foto:'media/banco/accion-cafe.webp',o:[[0,'Bebo un café.'],[0,'Leo el periódico.']],ok:0,p:'Mira la taza.',x:'Bebo un café.',d:'cafe'},
+   {tipo:'elige',q:'¿Qué frase es?',show:'📰',foto:'media/banco/accion-periodico.webp',o:[[0,'Leo el periódico.'],[0,'Bebo un café.']],ok:0,p:'Mira lo que tiene en las manos.',x:'Leo el periódico.'},
    {tipo:'elige',q:'¿Qué frase es?',show:'🚿',o:[[0,'Me ducho.'],[0,'Me peino.']],ok:0,p:'Mira el agua.',x:'Me ducho.'},
    {tipo:'elige',q:'¿Qué frase es?',show:'📖',o:[[0,'Leo un libro.'],[0,'Canto una canción.']],ok:0,p:'Mira lo que hay.',x:'Leo un libro.'}],
   2:[
@@ -945,6 +946,7 @@ function pGen(){
   let estimulo='';
   if(it.fon)estimulo=`<div class="foto silabas-caja ${f==='bien'?'acierto':''}">${conImagen(it.w,it.e)?`<div class="sil-foto">${imagen(it)}</div>`:''}<span class="silabeo" style="font-size:${Math.max(40,Math.min(84,Math.floor(410/(it.t.length*0.62+(it.s.length-1)*0.75))))}px" aria-label="${esc(it.t)}, sílaba a sílaba">${it.s.map((x,k)=>`<span class="sil ${f==='bien'?'todo':''}">${esc(k?x.toLowerCase():May(x.toLowerCase()))}</span>`).join('<span class="sep" aria-hidden="true">·</span>')}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<button class="boton secundario chico" data-a="oirsil">Otra vez, sílaba a sílaba</button></div>`;
   else if(it.tipo==='repite')estimulo=`<div class="foto ${f==='bien'?'acierto':''}"><span class="repite">${it.t}</span>${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}<span class="provisional">Escucha y repite</span></div>`;
+  else if(it.foto)estimulo=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="${esc(it.x||'Foto')}"><img class="fotocasa" src="${it.foto}" alt="">${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}</div>`;
   else if(it.show)estimulo=`<div class="foto ${f==='bien'?'acierto':''}" role="img" aria-label="${it.txt?it.show:'Imagen'}">${it.txt?`<span class="repite">${it.show}</span>`:`<span class="emo">${it.show}</span>`}${f==='bien'?`<span class="marca-ok">${I.ok}</span>`:''}</div>`;
   let ctl='';
   if(it.tipo==='elige'){
